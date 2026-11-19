@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icons/qGlobalManager.svg</file>
+        <file>assets/qGlobalManager.jpeg</file>
+    </qresource>
+</RCC>

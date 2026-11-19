@@ -8,7 +8,7 @@ TARGET   = qGlobalManager
 VERSION  = 0.1.0
 
 # Módulos base de Qt (interfaz gráfica y persistencia SQLite)
-QT += core gui sql
+QT += core gui sql svg network printsupport
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 # Estándar C++ moderno compatible con Qt 5.15 y obligatorio en Qt 6
@@ -76,16 +76,30 @@ SOURCES += \
 
 # 2. Núcleo transversal (persistencia SQLite, sesión, permisos, timer de inactividad)
 HEADERS += \
-    src/core/db.h
+    src/core/db.h \
+    src/core/icons.h \
+    src/core/licenseToken.h \
+    src/core/mailer.h \
+    src/core/moduleBase.h \
+    src/core/session.h \
+    src/core/theme.h
 
 SOURCES += \
-    src/core/db.cpp
+    src/core/db.cpp \
+    src/core/icons.cpp \
+    src/core/licenseToken.cpp \
+    src/core/mailer.cpp \
+    src/core/moduleBase.cpp \
+    src/core/session.cpp \
+    src/core/theme.cpp
 
-# 3. Interfaz principal (enrutador/handler de módulos)
+# 3. Interfaz principal (login y enrutador/handler de módulos)
 HEADERS += \
+    src/ui/loginDialog.h \
     src/ui/mainWindow.h
 
 SOURCES += \
+    src/ui/loginDialog.cpp \
     src/ui/mainWindow.cpp
 
 # 4. Módulos funcionales (src/modules/<nombre_modulo>/<nombre_modulo>.h/.cpp)
