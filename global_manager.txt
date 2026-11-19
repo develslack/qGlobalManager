@@ -1,0 +1,106 @@
+# ============================================================================================== #
+# PROYECTO GLOBAL MANAGER #
+# ============================================================================================== #
+
+# ============================================================================================== #
+# TIPO APLICACION #
+# ============================================================================================== #
+
+    Será una aplicación de administración general de comercios,consultorios, etc.
+    Los comercios pueden ser de distintos rubros como por ejemplo: Pet Shops, Repuestos Automotor,
+    Kioskos, Tiendas de indumentaria, Despensas de productos alimenticios, etc.
+    El el rubro consultorios, puede ser usada en contultorios individuales (Dentistas, oftalmólogo)
+    o en consultorios compartidos, aquellos donde atienden varios odontólogos, oftalmólogos o
+    médicos de distintas disciplinas.
+
+# ============================================================================================== #
+# ESTRUCTURA DE LA APP #
+# ============================================================================================== #
+
+    La aplicación será realizada commpletamente en QT/C++, contando con soporte de persistencia
+    en sqlite.
+    La app estará estructurada en módulos individuales los cuales en algunos casos pueden no tener
+    relación con otros módulos y en otros casos si relacionarse entre ellos.
+    La app deberá estar estructura en relación al desarrollo, de la siguiente manera. Cada modulo
+    tendrá su archivo de codigo nombrado de la siguiente forma:
+    <nombre_modulo.h/cpp> estos se guardaran dentro del directorio "src/modules/<nombre_modulo>/<archivos>"
+    Aquellos archivos que sean troncales a toda la app se guardaran en el directorio
+    "src/core/<archivos_troncales.h/cpp"
+    Un ejemplo de esto puede ser "db.h/cpp"
+    Los archivos que contengan el manejo de la parte gráfica estarán el directorio
+    "src/ui/mainWindow.h/cpp"
+    El archivo "mainWindow.cpp" solo deberá funcionar como un enrutador/handler de llamado a cada modulo,
+    esto es para que no se transforme en un archivo con miles de lineas de código inmanejable,
+    por lo tanto, cada vez que se añada un modulo nuevo, solo se añadirá al archivo "mainWindow.cpp"
+    la entrada correspondiente a dicho módulo.
+    Luego el archivo "main.cpp" estará dentro de "src/"
+
+    Para compilar el proyecto generaremos un archivo "build.sh" el cual deberá tener parametros como
+
+    --clean (para limpiar viejos archivos de compilación y comenzar de cero)
+    --debug (para ejecutar en modo debug para desarrollo)
+    --release (compilación óptima para generar el ejecutable final de instalación)
+    --make-deploy-linux (para compilación en entorno linux, el cual generará un .run incluyendo
+        todas las librerias necesarias para su funcionamiento al estilo de linuxdeployqt)
+    --make-deploy-win (para compilación en entorno Windows, el cual generará un .exe incluyendo
+        todas las librerias necesarias para su funcionamiento al estilo de windeployqt)
+
+    Para los --make-deploy el archivo .run/.exe generado se dejará listo en el directorio
+    "dist/linux/" o "dist/windows/" según corresponda.
+    Menos en --make-deploy-linux y --make-deploy-win
+        al terminar el proceso de compilación y empaquetamiento, no se lanzará la aplicación
+    Todos estos parámetros deben ser combinables.
+
+    la estructura de directorios que deberá tener luego de la ejecució del archivo .run/.exe
+    es la siguiente:
+
+    qGlobalManager
+    |
+    |-> bin/ejecutable
+    |-> documentation/ (documentación de la app)
+    |-> icons/ (iconos de la app)
+    |-> libs/ (librerias necesarias para funcionar)
+    |-> plugins
+        |-> iconsengines/
+        |-> imageformats/
+        |-> plaatforms/
+        |-> platformtheme/
+        |-> xcbglintegrations/
+
+    La aplicación se instalará en "/opt/qGlobalManager/" en linux y en "c:/Programs_Files/qGlobalManager/"
+    en windows
+
+
+
+    usaremos para generar el Makefile el archivo .pro para que sea posible compilar tanto desde
+    consola como si se desea usar el IDE QtCreator.
+    Deberemos contemplar la compatibilidad a futuro entre qt5 y qt6.
+    En entorno de desarrollo base será en Slackware 15, pero ante posibles actualizaciones
+    es importante ya tener prevista la compatibilidad a futuro con qt6 y c++ futuras versiones.
+
+    El nombre de la app al usuario será "Global Manager", pero el ejecutable se nombrará
+    como "qGlobalManager"
+
+
+    En desarrollo el ejecutable de la app se colocará en el directorio "build/". En producción en el
+    directorio "bin/"
+
+# ============================================================================================== #
+# SEGURIDAD Y DESARROLLO DE LA APP #
+# ============================================================================================== #
+
+    La aplicación deberá ser construida sobre la base de seguridad total y modelo KISS.
+    Toda la aplicación deberá ser de uso en modo gráfico , salvo excepciones que deban ser muy
+        tecnicas.
+    Debe estar pensada sobre la premisa de usurio promedio, que no tienen nociones profundas sobre
+        software y desarrollo del mismo, sino más bien como usuarios utilitarios.
+    Cada modulo deberá constatar los permisos del usuario que está intentar hace uso e informar
+        al mismo que no tiene permsios para determinadas tareas en dicho modulo.
+    Cada usuario deberá loguearse en el aplicación, con lo cual la información de ese usuario
+        será transversal a cad modulo del sistema mientras esté en sesión activa.
+    El sistema deberá tener un timer de control de seguridad para cuando el usuario logueado
+        está mucho tiempo sin usar el sistema, el cual deberá informar con un mensaje previo a
+        desconectarlo si desea mantener la sesion viva o salir y si no responde en un lapso minimo
+        de tiempo la sesión caducará.
+
+
