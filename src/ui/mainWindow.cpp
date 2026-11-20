@@ -2,8 +2,12 @@
 #include "core/icons.h"
 #include "core/moduleBase.h"
 #include "core/session.h"
+#include "modules/control_panel/control_panel.h"
+#include "modules/users/users.h"
 #include "loginDialog.h"
+#include "changePasswordDialog.h"
 
+#include <QTimer>
 #include <QApplication>
 #include <QFrame>
 #include <QGuiApplication>
@@ -231,6 +235,18 @@ void MainWindow::registerModules()
     // En el Paso 2B habilitaremos:
     // registerModule("panel_control", "Panel de Control", [](QWidget *p) { return new PanelControlModule(p); }, false);
     // registerModule("usuarios", "Usuarios", [](QWidget *p) { return new UsuariosModule(p); });
+
+    registerModule(
+    QStringLiteral("panel_control"),
+    QStringLiteral("Panel de Control"),
+    [](QWidget *p) { return new PanelControlModule(p); },
+    false);
+
+    registerModule(
+    QStringLiteral("usuarios"),
+    QStringLiteral("Usuarios"),
+    [](QWidget *p) { return new UsuariosModule(p); });
+
 }
 
 void MainWindow::registerModule(const QString &id,
@@ -393,6 +409,17 @@ void MainWindow::onSessionStarted()
                 break;
             }
         }
+    }
+    if (user.mustChangePassword && !user.isAdmin) {
+        QTimer::singleShot(0, this, [this]() {
+            if (!Session::instance().mustChangePassword()) {
+                return;
+            }
+            ChangePasswordDialog dlg(this);
+            if (dlg.exec() != QDialog::Accepted) {
+                Session::instance().logout(false);
+            }
+        });
     }
 }
 

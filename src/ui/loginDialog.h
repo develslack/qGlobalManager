@@ -17,6 +17,7 @@ public:
 
 private slots:
     void onLoginClicked();
+    void onForgotPasswordClicked();
 
 private:
     QLabel *m_bannerLabel = nullptr;

@@ -315,6 +315,7 @@ bool Database::seedInitialData(QString *errorMessage)
         {"usuarios",      "edit",        "Editar datos de usuarios"},
         {"usuarios",      "permissions", "Modificar permisos de usuarios"},
         {"usuarios",      "block",       "Bloquear o desbloquear usuarios"},
+        {"usuarios", "reset_password", "Generar y reenviar nuevas contraseñas"},
         {"roles",         "access",      "Administrar roles del sistema"}
     };
 

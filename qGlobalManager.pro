@@ -82,7 +82,8 @@ HEADERS += \
     src/core/mailer.h \
     src/core/moduleBase.h \
     src/core/session.h \
-    src/core/theme.h
+    src/core/theme.h \
+    src/core/userCredentials.h
 
 SOURCES += \
     src/core/db.cpp \
@@ -91,14 +92,16 @@ SOURCES += \
     src/core/mailer.cpp \
     src/core/moduleBase.cpp \
     src/core/session.cpp \
-    src/core/theme.cpp
+    src/core/theme.cpp \
+    src/core/userCredentials.cpp
 
-# 3. Interfaz principal (login y enrutador/handler de módulos)
 HEADERS += \
+    src/ui/changePasswordDialog.h \
     src/ui/loginDialog.h \
     src/ui/mainWindow.h
 
 SOURCES += \
+    src/ui/changePasswordDialog.cpp \
     src/ui/loginDialog.cpp \
     src/ui/mainWindow.cpp
 
@@ -107,7 +110,7 @@ SOURCES += \
 # HEADERS += src/modules/ejemplo/ejemplo.h
 # SOURCES += src/modules/ejemplo/ejemplo.cpp
 
-MODULE_PRIS = $$files($$PWD/src/modules/*/*.pri)
+MODULE_PRIS = $$files($$PWD/src/modules/*.pri, true)
 for(mod_pri, MODULE_PRIS) {
     include($$mod_pri)
 }
