@@ -7,11 +7,19 @@
 #include <QVariant>
 #include <QtGlobal>
 
+
+// ============================================================================================================================================= //
+
+
 Session &Session::instance()
 {
     static Session s;
     return s;
 }
+
+
+// ============================================================================================================================================= //
+
 
 Session::Session(QObject *parent)
     : QObject(parent)
@@ -22,6 +30,10 @@ Session::Session(QObject *parent)
     connect(&m_idleTimer, &QTimer::timeout, this, &Session::onIdleTimeout);
     connect(&m_warningTimer, &QTimer::timeout, this, &Session::onWarningTick);
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool Session::login(const QString &email, const QString &password, QString *errorMessage)
 {
@@ -102,6 +114,10 @@ bool Session::login(const QString &email, const QString &password, QString *erro
     return true;
 }
 
+
+// ============================================================================================================================================= //
+
+
 void Session::logout(bool expiredByInactivity)
 {
     if (!m_authenticated) {
@@ -121,20 +137,36 @@ void Session::logout(bool expiredByInactivity)
     emit sessionEnded(expiredByInactivity);
 }
 
+
+// ============================================================================================================================================= //
+
+
 bool Session::isAuthenticated() const
 {
     return m_authenticated;
 }
+
+
+// ============================================================================================================================================= //
+
 
 const UserSessionInfo &Session::currentUser() const
 {
     return m_user;
 }
 
+
+// ============================================================================================================================================= //
+
+
 bool Session::mustChangePassword() const
 {
     return m_authenticated && m_user.mustChangePassword;
 }
+
+
+// ============================================================================================================================================= //
+
 
 void Session::markPasswordChanged()
 {
@@ -144,6 +176,10 @@ void Session::markPasswordChanged()
     m_user.mustChangePassword = false;
     emit passwordPolicyResolved();
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool Session::hasPermission(const QString &moduleId, const QString &action) const
 {
@@ -159,6 +195,10 @@ bool Session::hasPermission(const QString &moduleId, const QString &action) cons
     return m_user.permissions.contains(exactKey) || m_user.permissions.contains(wildcardModule);
 }
 
+
+// ============================================================================================================================================= //
+
+
 void Session::configureInactivityTimeouts(int idleSeconds, int warningSeconds)
 {
     m_idleSeconds = qMax(10, idleSeconds);
@@ -167,6 +207,10 @@ void Session::configureInactivityTimeouts(int idleSeconds, int warningSeconds)
         m_idleTimer.start(m_idleSeconds * 1000);
     }
 }
+
+
+// ============================================================================================================================================= //
+
 
 void Session::reloadInactivityFromDatabase()
 {
@@ -183,6 +227,10 @@ void Session::reloadInactivityFromDatabase()
                                 (okWarn && warnSec >= 5 ? warnSec : 30));
 }
 
+
+// ============================================================================================================================================= //
+
+
 void Session::keepAlive()
 {
     if (!m_authenticated) {
@@ -192,6 +240,10 @@ void Session::keepAlive()
     m_warningTimer.stop();
     m_idleTimer.start(m_idleSeconds * 1000);
 }
+
+
+// ============================================================================================================================================= //
+
 
 void Session::loadUserPermissions(int userId, int roleId)
 {
@@ -234,6 +286,10 @@ void Session::loadUserPermissions(int userId, int roleId)
     }
 }
 
+
+// ============================================================================================================================================= //
+
+
 void Session::startInactivityWatch()
 {
     m_warningActive = false;
@@ -241,12 +297,20 @@ void Session::startInactivityWatch()
     m_idleTimer.start(m_idleSeconds * 1000);
 }
 
+
+// ============================================================================================================================================= //
+
+
 void Session::stopInactivityWatch()
 {
     m_warningActive = false;
     m_idleTimer.stop();
     m_warningTimer.stop();
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool Session::eventFilter(QObject *watched, QEvent *event)
 {
@@ -266,6 +330,10 @@ bool Session::eventFilter(QObject *watched, QEvent *event)
     return QObject::eventFilter(watched, event);
 }
 
+
+// ============================================================================================================================================= //
+
+
 void Session::onIdleTimeout()
 {
     if (!m_authenticated) {
@@ -276,6 +344,10 @@ void Session::onIdleTimeout()
     emit inactivityWarningStarted(m_remainingSeconds);
     m_warningTimer.start();
 }
+
+
+// ============================================================================================================================================= //
+
 
 void Session::onWarningTick()
 {
@@ -292,3 +364,7 @@ void Session::onWarningTick()
 
     emit inactivityCountdownTick(m_remainingSeconds);
 }
+
+
+
+// ============================================================================================================================================= //

@@ -13,6 +13,10 @@
 #include <QTextStream>
 #include <QVariant>
 
+
+// ============================================================================================================================================= //
+
+
 bool UserCredentials::isValidEmail(const QString &email)
 {
     static const QRegularExpression rx(
@@ -20,6 +24,10 @@ bool UserCredentials::isValidEmail(const QString &email)
         QRegularExpression::CaseInsensitiveOption);
     return rx.match(email.trimmed()).hasMatch();
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool UserCredentials::isStrongPassword(const QString &password, QString *reasonOut)
 {
@@ -37,6 +45,10 @@ bool UserCredentials::isStrongPassword(const QString &password, QString *reasonO
     }
     return true;
 }
+
+
+// ============================================================================================================================================= //
+
 
 QString UserCredentials::sanitizeFileName(const QString &name)
 {
@@ -61,6 +73,10 @@ QString UserCredentials::sanitizeFileName(const QString &name)
     return ascii.isEmpty() ? QStringLiteral("usuario") : ascii;
 }
 
+
+// ============================================================================================================================================= //
+
+
 QString UserCredentials::resolveTempCredentialsDir()
 {
 #ifdef APP_DEBUG_BUILD
@@ -75,6 +91,10 @@ QString UserCredentials::resolveTempCredentialsDir()
     QDir().mkpath(dir);
     return dir;
 }
+
+
+// ============================================================================================================================================= //
+
 
 CredentialDeliveryResult UserCredentials::deliverTemporaryPassword(
     const QString &fullName,
@@ -145,6 +165,10 @@ CredentialDeliveryResult UserCredentials::deliverTemporaryPassword(
 
     return result;
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool UserCredentials::resetPasswordByEmail(const QString &email, QString *feedbackMessage)
 {
@@ -248,3 +272,7 @@ bool UserCredentials::resetPasswordByEmail(const QString &email, QString *feedba
     }
     return true;
 }
+
+
+
+// ============================================================================================================================================= //

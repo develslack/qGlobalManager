@@ -20,6 +20,10 @@ QByteArray maskKey()
         QCryptographicHash::Sha256);
 }
 
+
+// ============================================================================================================================================= //
+
+
 bool readSmtpResponse(QSslSocket &socket, int *statusCode, QString *fullResponse)
 {
     QByteArray buffer;
@@ -47,6 +51,10 @@ bool readSmtpResponse(QSslSocket &socket, int *statusCode, QString *fullResponse
         }
     }
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool sendSmtpCommand(QSslSocket &socket,
                      const QByteArray &command,
@@ -78,6 +86,10 @@ bool sendSmtpCommand(QSslSocket &socket,
     }
     return true;
 }
+
+
+// ============================================================================================================================================= //
+
 
 QByteArray buildMimePayload(const SmtpConfig &config,
                             const QString &toEmail,
@@ -144,10 +156,18 @@ QByteArray buildMimePayload(const SmtpConfig &config,
 
 } // namespace
 
+
+// ============================================================================================================================================= //
+
+
 bool SmtpConfig::isComplete() const
 {
     return !fromEmail.trimmed().isEmpty() && !host.trimmed().isEmpty() && port > 0;
 }
+
+
+// ============================================================================================================================================= //
+
 
 QString Mailer::encodeSecret(const QString &plainText)
 {
@@ -162,6 +182,10 @@ QString Mailer::encodeSecret(const QString &plainText)
     return QStringLiteral("enc1:") + QString::fromLatin1(data.toBase64());
 }
 
+
+// ============================================================================================================================================= //
+
+
 QString Mailer::decodeSecret(const QString &encodedText)
 {
     if (!encodedText.startsWith(QStringLiteral("enc1:"))) {
@@ -174,6 +198,10 @@ QString Mailer::decodeSecret(const QString &encodedText)
     }
     return QString::fromUtf8(data);
 }
+
+
+// ============================================================================================================================================= //
+
 
 SmtpConfig Mailer::loadConfig()
 {
@@ -189,6 +217,10 @@ SmtpConfig Mailer::loadConfig()
     return cfg;
 }
 
+
+// ============================================================================================================================================= //
+
+
 bool Mailer::saveConfig(const SmtpConfig &config, QString *errorMessage)
 {
     Database &db = Database::instance();
@@ -203,6 +235,10 @@ bool Mailer::saveConfig(const SmtpConfig &config, QString *errorMessage)
     return ok;
 }
 
+
+// ============================================================================================================================================= //
+
+
 bool Mailer::sendMail(const QString &toEmail,
                       const QString &subject,
                       const QString &bodyText,
@@ -212,6 +248,10 @@ bool Mailer::sendMail(const QString &toEmail,
     const SmtpConfig cfg = loadConfig();
     return sendMailWithConfig(cfg, toEmail, subject, bodyText, attachmentPaths, errorMessage);
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool Mailer::sendMailWithConfig(const SmtpConfig &config,
                                 const QString &toEmail,

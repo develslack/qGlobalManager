@@ -3,6 +3,10 @@
 #include <QApplication>
 #include <QFont>
 
+
+// ============================================================================================================================================= //
+
+
 namespace Theme {
 
 void apply(QApplication &app)
@@ -14,6 +18,10 @@ void apply(QApplication &app)
     app.setFont(baseFont);
     app.setStyleSheet(styleSheet());
 }
+
+
+// ============================================================================================================================================= //
+
 
 QString styleSheet()
 {

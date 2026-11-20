@@ -57,6 +57,10 @@ ModuleBase::ModuleBase(QWidget *parent)
     rootLayout->addWidget(bodyContainer, 1);
 }
 
+
+// ============================================================================================================================================= //
+
+
 void ModuleBase::initBanner(const QString &title,
                             const QString &subtitle,
                             const QString &iconResource)
@@ -73,10 +77,18 @@ void ModuleBase::initBanner(const QString &title,
     }
 }
 
+
+// ============================================================================================================================================= //
+
+
 QVBoxLayout *ModuleBase::bodyLayout() const
 {
     return m_bodyLayout;
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool ModuleBase::requirePermission(const QString &action, const QString &taskDescription)
 {

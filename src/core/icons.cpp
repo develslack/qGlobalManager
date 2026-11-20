@@ -6,6 +6,10 @@
 #include <QString>
 #include <QSvgRenderer>
 
+
+// ============================================================================================================================================= //
+
+
 namespace Icons {
 
 namespace {
@@ -146,6 +150,10 @@ QString svgInnerContent(Name iconName)
 
 } // namespace
 
+
+// ============================================================================================================================================= //
+
+
 QIcon get(Name iconName, const QColor &color, int sizePx)
 {
     const QString svg = QStringLiteral(
@@ -167,3 +175,7 @@ QIcon get(Name iconName, const QColor &color, int sizePx)
 }
 
 } // namespace Icons
+
+
+
+// ============================================================================================================================================= //

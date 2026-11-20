@@ -10,16 +10,28 @@
 #include <QStringList>
 #include <QVariant>
 
+
+// ============================================================================================================================================= //
+
+
 namespace {
 constexpr int kSaltBytes = 16;
 constexpr int kHashIterations = 100000;
 }
+
+
+// ============================================================================================================================================= //
+
 
 Database &Database::instance()
 {
     static Database db;
     return db;
 }
+
+
+// ============================================================================================================================================= //
+
 
 Database::~Database()
 {
@@ -34,6 +46,10 @@ Database::~Database()
     }
 }
 
+
+// ============================================================================================================================================= //
+
+
 QString Database::resolveDatabasePath() const
 {
 #ifdef APP_DEBUG_BUILD
@@ -47,6 +63,10 @@ QString Database::resolveDatabasePath() const
     QDir().mkpath(dataDir);
     return dataDir + QStringLiteral("/qGlobalManager.sqlite");
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool Database::initialize(QString *errorMessage)
 {
@@ -91,6 +111,10 @@ bool Database::initialize(QString *errorMessage)
     return true;
 }
 
+
+// ============================================================================================================================================= //
+
+
 bool Database::isOpen() const
 {
     if (!QSqlDatabase::contains(m_connectionName)) {
@@ -99,15 +123,27 @@ bool Database::isOpen() const
     return QSqlDatabase::database(m_connectionName, false).isOpen();
 }
 
+
+// ============================================================================================================================================= //
+
+
 QSqlDatabase Database::connection() const
 {
     return QSqlDatabase::database(m_connectionName);
 }
 
+
+// ============================================================================================================================================= //
+
+
 QString Database::databasePath() const
 {
     return m_dbPath;
 }
+
+
+// ============================================================================================================================================= //
+
 
 QString Database::getSetting(const QString &key, const QString &defaultValue) const
 {
@@ -124,6 +160,10 @@ QString Database::getSetting(const QString &key, const QString &defaultValue) co
     }
     return defaultValue;
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool Database::setSetting(const QString &key, const QString &value, QString *errorMessage)
 {
@@ -152,6 +192,10 @@ bool Database::setSetting(const QString &key, const QString &value, QString *err
     return true;
 }
 
+
+// ============================================================================================================================================= //
+
+
 void Database::logAudit(const QString &userEmail,
                         const QString &moduleId,
                         const QString &action,
@@ -172,6 +216,10 @@ void Database::logAudit(const QString &userEmail,
     query.bindValue(QStringLiteral(":details"), details);
     query.exec();
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool Database::createSchema(QString *errorMessage)
 {
@@ -287,6 +335,10 @@ bool Database::createSchema(QString *errorMessage)
 
     return true;
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool Database::seedInitialData(QString *errorMessage)
 {
@@ -408,6 +460,10 @@ bool Database::seedInitialData(QString *errorMessage)
     return true;
 }
 
+
+// ============================================================================================================================================= //
+
+
 QByteArray Database::deriveKey(const QByteArray &password, const QByteArray &salt, int iterations)
 {
     QByteArray digest = QCryptographicHash::hash(salt + password, QCryptographicHash::Sha256);
@@ -416,6 +472,10 @@ QByteArray Database::deriveKey(const QByteArray &password, const QByteArray &sal
     }
     return digest;
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool Database::constantTimeEquals(const QByteArray &a, const QByteArray &b)
 {
@@ -429,6 +489,10 @@ bool Database::constantTimeEquals(const QByteArray &a, const QByteArray &b)
     return diff == 0;
 }
 
+
+// ============================================================================================================================================= //
+
+
 QString Database::hashPassword(const QString &plainPassword)
 {
     QByteArray salt(kSaltBytes, Qt::Uninitialized);
@@ -441,6 +505,10 @@ QString Database::hashPassword(const QString &plainPassword)
         .arg(kHashIterations)
         .arg(QString::fromLatin1(salt.toHex()), QString::fromLatin1(hash.toHex()));
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool Database::verifyPassword(const QString &plainPassword, const QString &storedHash)
 {
@@ -461,6 +529,10 @@ bool Database::verifyPassword(const QString &plainPassword, const QString &store
 
     return constantTimeEquals(computedHash, expectedHash);
 }
+
+
+// ============================================================================================================================================= //
+
 
 QString Database::generateRandomPassword(int length)
 {
@@ -499,3 +571,6 @@ QString Database::generateRandomPassword(int length)
 
     return pwd;
 }
+
+
+// ============================================================================================================================================= //

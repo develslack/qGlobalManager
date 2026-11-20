@@ -19,11 +19,19 @@ bool constantTimeEqual(const QByteArray &a, const QByteArray &b)
 }
 } // namespace
 
+
+// ============================================================================================================================================= //
+
+
 QByteArray LicenseToken::signingKey()
 {
     // Cambia esta clave privada antes de compilar tu instalador comercial definitivo
     return QByteArrayLiteral("GM_SECRET_SIGNING_KEY_2026_CHANGE_FOR_PROD");
 }
+
+
+// ============================================================================================================================================= //
+
 
 QString LicenseToken::normalizeCuit(const QString &cuit)
 {
@@ -35,6 +43,10 @@ QString LicenseToken::normalizeCuit(const QString &cuit)
     }
     return out;
 }
+
+
+// ============================================================================================================================================= //
+
 
 QString LicenseToken::generate(const QString &scope, const QString &cuit, const QDate &expiresOn)
 {
@@ -57,6 +69,10 @@ QString LicenseToken::generate(const QString &scope, const QString &cuit, const 
     return QStringLiteral("GM1.%1.%2")
         .arg(QString::fromLatin1(encodedPayload), QString::fromLatin1(sig));
 }
+
+
+// ============================================================================================================================================= //
+
 
 LicenseInfo LicenseToken::validate(const QString &tokenText, const QString &expectedCuit)
 {
@@ -119,12 +135,20 @@ LicenseInfo LicenseToken::validate(const QString &tokenText, const QString &expe
     return info;
 }
 
+
+// ============================================================================================================================================= //
+
+
 LicenseInfo LicenseToken::loadCurrent()
 {
     const QString token = Database::instance().getSetting(QStringLiteral("license.token"));
     const QString cuit  = Database::instance().getSetting(QStringLiteral("company.cuit"));
     return validate(token, cuit);
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool LicenseToken::saveToken(const QString &tokenText, QString *errorMessage)
 {
@@ -136,6 +160,10 @@ bool LicenseToken::saveToken(const QString &tokenText, QString *errorMessage)
     }
     return Database::instance().setSetting(QStringLiteral("license.token"), tokenText.trimmed(), errorMessage);
 }
+
+
+// ============================================================================================================================================= //
+
 
 bool LicenseToken::isDbAdminAllowed()
 {
