@@ -37,7 +37,7 @@ MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
 DISTNAME      = qGlobalManager0.1.0
-DISTDIR = /home/augusto/projects/QT/qGlobalManager/build/.tmp/obj/qGlobalManager0.1.0
+DISTDIR = /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/obj/qGlobalManager0.1.0
 LINK          = g++
 LFLAGS        = -Wl,-rpath,'$$ORIGIN/../libs' -Wl,-rpath,/usr/lib64
 LIBS          = $(SUBLIBS) /usr/lib64/libQt5Svg.so /usr/lib64/libQt5PrintSupport.so /usr/lib64/libQt5Widgets.so /usr/lib64/libQt5Gui.so /usr/lib64/libQt5Sql.so /usr/lib64/libQt5Network.so /usr/lib64/libQt5Core.so -lGL -lpthread   
@@ -61,6 +61,7 @@ SOURCES       = ../src/main.cpp \
 		../src/core/session.cpp \
 		../src/core/theme.cpp \
 		../src/core/userCredentials.cpp \
+		../src/core/oauth2Google.cpp \
 		../src/ui/changePasswordDialog.cpp \
 		../src/ui/loginDialog.cpp \
 		../src/ui/mainWindow.cpp \
@@ -86,6 +87,7 @@ OBJECTS       = .tmp/obj/main.o \
 		.tmp/obj/session.o \
 		.tmp/obj/theme.o \
 		.tmp/obj/userCredentials.o \
+		.tmp/obj/oauth2Google.o \
 		.tmp/obj/changePasswordDialog.o \
 		.tmp/obj/loginDialog.o \
 		.tmp/obj/mainWindow.o \
@@ -476,6 +478,7 @@ DIST          = ../build.sh \
 		../src/core/session.h \
 		../src/core/theme.h \
 		../src/core/userCredentials.h \
+		../src/core/oauth2Google.h \
 		../src/ui/changePasswordDialog.h \
 		../src/ui/loginDialog.h \
 		../src/ui/mainWindow.h \
@@ -491,6 +494,7 @@ DIST          = ../build.sh \
 		../src/core/session.cpp \
 		../src/core/theme.cpp \
 		../src/core/userCredentials.cpp \
+		../src/core/oauth2Google.cpp \
 		../src/ui/changePasswordDialog.cpp \
 		../src/ui/loginDialog.cpp \
 		../src/ui/mainWindow.cpp \
@@ -1259,8 +1263,8 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents ../resources/resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib64/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../src/core/db.h ../src/core/icons.h ../src/core/licenseToken.h ../src/core/mailer.h ../src/core/moduleBase.h ../src/core/session.h ../src/core/theme.h ../src/core/userCredentials.h ../src/ui/changePasswordDialog.h ../src/ui/loginDialog.h ../src/ui/mainWindow.h ../src/modules/control_panel/control_panel.h ../src/modules/control_panel/supportTablesWidget.h ../src/modules/control_panel/dbAdminWidget.h ../src/modules/users/users.h $(DISTDIR)/
-	$(COPY_FILE) --parents ../src/main.cpp ../src/core/db.cpp ../src/core/icons.cpp ../src/core/licenseToken.cpp ../src/core/mailer.cpp ../src/core/moduleBase.cpp ../src/core/session.cpp ../src/core/theme.cpp ../src/core/userCredentials.cpp ../src/ui/changePasswordDialog.cpp ../src/ui/loginDialog.cpp ../src/ui/mainWindow.cpp ../src/modules/control_panel/control_panel.cpp ../src/modules/control_panel/supportTablesWidget.cpp ../src/modules/control_panel/dbAdminWidget.cpp ../src/modules/users/users.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents ../src/core/db.h ../src/core/icons.h ../src/core/licenseToken.h ../src/core/mailer.h ../src/core/moduleBase.h ../src/core/session.h ../src/core/theme.h ../src/core/userCredentials.h ../src/core/oauth2Google.h ../src/ui/changePasswordDialog.h ../src/ui/loginDialog.h ../src/ui/mainWindow.h ../src/modules/control_panel/control_panel.h ../src/modules/control_panel/supportTablesWidget.h ../src/modules/control_panel/dbAdminWidget.h ../src/modules/users/users.h $(DISTDIR)/
+	$(COPY_FILE) --parents ../src/main.cpp ../src/core/db.cpp ../src/core/icons.cpp ../src/core/licenseToken.cpp ../src/core/mailer.cpp ../src/core/moduleBase.cpp ../src/core/session.cpp ../src/core/theme.cpp ../src/core/userCredentials.cpp ../src/core/oauth2Google.cpp ../src/ui/changePasswordDialog.cpp ../src/ui/loginDialog.cpp ../src/ui/mainWindow.cpp ../src/modules/control_panel/control_panel.cpp ../src/modules/control_panel/supportTablesWidget.cpp ../src/modules/control_panel/dbAdminWidget.cpp ../src/modules/users/users.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -1305,49 +1309,49 @@ compiler_moc_header_clean:
 .tmp/moc/moc_moduleBase.cpp: ../src/core/moduleBase.h \
 		.tmp/moc/moc_predefs.h \
 		/usr/lib64/qt5/bin/moc
-	/usr/lib64/qt5/bin/moc $(DEFINES) --include /home/augusto/projects/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/home/augusto/projects/QT/qGlobalManager -I/home/augusto/projects/QT/qGlobalManager/src -I/home/augusto/projects/QT/qGlobalManager/src/core -I/home/augusto/projects/QT/qGlobalManager/src/ui -I/home/augusto/projects/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/core/moduleBase.h -o .tmp/moc/moc_moduleBase.cpp
+	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/core/moduleBase.h -o .tmp/moc/moc_moduleBase.cpp
 
 .tmp/moc/moc_session.cpp: ../src/core/session.h \
 		.tmp/moc/moc_predefs.h \
 		/usr/lib64/qt5/bin/moc
-	/usr/lib64/qt5/bin/moc $(DEFINES) --include /home/augusto/projects/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/home/augusto/projects/QT/qGlobalManager -I/home/augusto/projects/QT/qGlobalManager/src -I/home/augusto/projects/QT/qGlobalManager/src/core -I/home/augusto/projects/QT/qGlobalManager/src/ui -I/home/augusto/projects/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/core/session.h -o .tmp/moc/moc_session.cpp
+	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/core/session.h -o .tmp/moc/moc_session.cpp
 
 .tmp/moc/moc_changePasswordDialog.cpp: ../src/ui/changePasswordDialog.h \
 		.tmp/moc/moc_predefs.h \
 		/usr/lib64/qt5/bin/moc
-	/usr/lib64/qt5/bin/moc $(DEFINES) --include /home/augusto/projects/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/home/augusto/projects/QT/qGlobalManager -I/home/augusto/projects/QT/qGlobalManager/src -I/home/augusto/projects/QT/qGlobalManager/src/core -I/home/augusto/projects/QT/qGlobalManager/src/ui -I/home/augusto/projects/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/ui/changePasswordDialog.h -o .tmp/moc/moc_changePasswordDialog.cpp
+	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/ui/changePasswordDialog.h -o .tmp/moc/moc_changePasswordDialog.cpp
 
 .tmp/moc/moc_loginDialog.cpp: ../src/ui/loginDialog.h \
 		.tmp/moc/moc_predefs.h \
 		/usr/lib64/qt5/bin/moc
-	/usr/lib64/qt5/bin/moc $(DEFINES) --include /home/augusto/projects/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/home/augusto/projects/QT/qGlobalManager -I/home/augusto/projects/QT/qGlobalManager/src -I/home/augusto/projects/QT/qGlobalManager/src/core -I/home/augusto/projects/QT/qGlobalManager/src/ui -I/home/augusto/projects/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/ui/loginDialog.h -o .tmp/moc/moc_loginDialog.cpp
+	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/ui/loginDialog.h -o .tmp/moc/moc_loginDialog.cpp
 
 .tmp/moc/moc_mainWindow.cpp: ../src/ui/mainWindow.h \
 		.tmp/moc/moc_predefs.h \
 		/usr/lib64/qt5/bin/moc
-	/usr/lib64/qt5/bin/moc $(DEFINES) --include /home/augusto/projects/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/home/augusto/projects/QT/qGlobalManager -I/home/augusto/projects/QT/qGlobalManager/src -I/home/augusto/projects/QT/qGlobalManager/src/core -I/home/augusto/projects/QT/qGlobalManager/src/ui -I/home/augusto/projects/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/ui/mainWindow.h -o .tmp/moc/moc_mainWindow.cpp
+	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/ui/mainWindow.h -o .tmp/moc/moc_mainWindow.cpp
 
 .tmp/moc/moc_control_panel.cpp: ../src/modules/control_panel/control_panel.h \
 		../src/core/moduleBase.h \
 		.tmp/moc/moc_predefs.h \
 		/usr/lib64/qt5/bin/moc
-	/usr/lib64/qt5/bin/moc $(DEFINES) --include /home/augusto/projects/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/home/augusto/projects/QT/qGlobalManager -I/home/augusto/projects/QT/qGlobalManager/src -I/home/augusto/projects/QT/qGlobalManager/src/core -I/home/augusto/projects/QT/qGlobalManager/src/ui -I/home/augusto/projects/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/modules/control_panel/control_panel.h -o .tmp/moc/moc_control_panel.cpp
+	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/modules/control_panel/control_panel.h -o .tmp/moc/moc_control_panel.cpp
 
 .tmp/moc/moc_supportTablesWidget.cpp: ../src/modules/control_panel/supportTablesWidget.h \
 		.tmp/moc/moc_predefs.h \
 		/usr/lib64/qt5/bin/moc
-	/usr/lib64/qt5/bin/moc $(DEFINES) --include /home/augusto/projects/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/home/augusto/projects/QT/qGlobalManager -I/home/augusto/projects/QT/qGlobalManager/src -I/home/augusto/projects/QT/qGlobalManager/src/core -I/home/augusto/projects/QT/qGlobalManager/src/ui -I/home/augusto/projects/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/modules/control_panel/supportTablesWidget.h -o .tmp/moc/moc_supportTablesWidget.cpp
+	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/modules/control_panel/supportTablesWidget.h -o .tmp/moc/moc_supportTablesWidget.cpp
 
 .tmp/moc/moc_dbAdminWidget.cpp: ../src/modules/control_panel/dbAdminWidget.h \
 		.tmp/moc/moc_predefs.h \
 		/usr/lib64/qt5/bin/moc
-	/usr/lib64/qt5/bin/moc $(DEFINES) --include /home/augusto/projects/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/home/augusto/projects/QT/qGlobalManager -I/home/augusto/projects/QT/qGlobalManager/src -I/home/augusto/projects/QT/qGlobalManager/src/core -I/home/augusto/projects/QT/qGlobalManager/src/ui -I/home/augusto/projects/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/modules/control_panel/dbAdminWidget.h -o .tmp/moc/moc_dbAdminWidget.cpp
+	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/modules/control_panel/dbAdminWidget.h -o .tmp/moc/moc_dbAdminWidget.cpp
 
 .tmp/moc/moc_users.cpp: ../src/modules/users/users.h \
 		../src/core/moduleBase.h \
 		.tmp/moc/moc_predefs.h \
 		/usr/lib64/qt5/bin/moc
-	/usr/lib64/qt5/bin/moc $(DEFINES) --include /home/augusto/projects/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/home/augusto/projects/QT/qGlobalManager -I/home/augusto/projects/QT/qGlobalManager/src -I/home/augusto/projects/QT/qGlobalManager/src/core -I/home/augusto/projects/QT/qGlobalManager/src/ui -I/home/augusto/projects/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/modules/users/users.h -o .tmp/moc/moc_users.cpp
+	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/modules/users/users.h -o .tmp/moc/moc_users.cpp
 
 compiler_moc_objc_header_make_all:
 compiler_moc_objc_header_clean:
@@ -1383,7 +1387,8 @@ compiler_clean: compiler_rcc_clean compiler_moc_predefs_clean compiler_moc_heade
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/licenseToken.o ../src/core/licenseToken.cpp
 
 .tmp/obj/mailer.o: ../src/core/mailer.cpp ../src/core/mailer.h \
-		../src/core/db.h
+		../src/core/db.h \
+		../src/core/oauth2Google.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/mailer.o ../src/core/mailer.cpp
 
 .tmp/obj/moduleBase.o: ../src/core/moduleBase.cpp ../src/core/moduleBase.h \
@@ -1401,6 +1406,9 @@ compiler_clean: compiler_rcc_clean compiler_moc_predefs_clean compiler_moc_heade
 		../src/core/db.h \
 		../src/core/mailer.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/userCredentials.o ../src/core/userCredentials.cpp
+
+.tmp/obj/oauth2Google.o: ../src/core/oauth2Google.cpp ../src/core/oauth2Google.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/oauth2Google.o ../src/core/oauth2Google.cpp
 
 .tmp/obj/changePasswordDialog.o: ../src/ui/changePasswordDialog.cpp ../src/ui/changePasswordDialog.h \
 		../src/core/db.h \
@@ -1433,7 +1441,8 @@ compiler_clean: compiler_rcc_clean compiler_moc_predefs_clean compiler_moc_heade
 		../src/core/icons.h \
 		../src/core/licenseToken.h \
 		../src/core/mailer.h \
-		../src/core/session.h
+		../src/core/session.h \
+		../src/core/oauth2Google.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/control_panel.o ../src/modules/control_panel/control_panel.cpp
 
 .tmp/obj/supportTablesWidget.o: ../src/modules/control_panel/supportTablesWidget.cpp ../src/modules/control_panel/supportTablesWidget.h \
@@ -1499,7 +1508,7 @@ uninstall_target: FORCE
 
 install_icons: first FORCE
 	@test -d $(INSTALL_ROOT)/opt/qGlobalManager/icons || mkdir -p $(INSTALL_ROOT)/opt/qGlobalManager/icons
-	$(QINSTALL) /home/augusto/projects/QT/qGlobalManager/resources/icons/qGlobalManager.svg $(INSTALL_ROOT)/opt/qGlobalManager/icons/qGlobalManager.svg
+	$(QINSTALL) /mnt/storage/desarrollo/QT/qGlobalManager/resources/icons/qGlobalManager.svg $(INSTALL_ROOT)/opt/qGlobalManager/icons/qGlobalManager.svg
 
 uninstall_icons: FORCE
 	-$(DEL_FILE) -r $(INSTALL_ROOT)/opt/qGlobalManager/icons/qGlobalManager.svg

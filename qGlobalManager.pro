@@ -83,7 +83,8 @@ HEADERS += \
     src/core/moduleBase.h \
     src/core/session.h \
     src/core/theme.h \
-    src/core/userCredentials.h
+    src/core/userCredentials.h \
+    src/core/oauth2Google.h
 
 SOURCES += \
     src/core/db.cpp \
@@ -93,7 +94,8 @@ SOURCES += \
     src/core/moduleBase.cpp \
     src/core/session.cpp \
     src/core/theme.cpp \
-    src/core/userCredentials.cpp
+    src/core/userCredentials.cpp \
+    src/core/oauth2Google.cpp
 
 HEADERS += \
     src/ui/changePasswordDialog.h \

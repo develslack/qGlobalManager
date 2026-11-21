@@ -3,18 +3,30 @@
 
 #include <QString>
 #include <QStringList>
+#include <QtGlobal>
 
 struct SmtpConfig
 {
     QString fromEmail;
     QString fromName;
     QString host;
-    int port = 587;
-    QString security = QStringLiteral("STARTTLS"); // "STARTTLS", "SSL", "NONE"
+    int port = 465;
+    QString security = QStringLiteral("SSL");          // "SSL" (SSL/TLS), "STARTTLS", "NONE"
+    QString authMethod = QStringLiteral("PASSWORD");   // "PASSWORD", "OAUTH2", "NONE"
+
+    // Autenticación clásica / Clave de aplicación
     QString username;
     QString password;
 
+    // Autenticación OAuth2 (Google / Gmail)
+    QString oauthClientId;
+    QString oauthClientSecret;
+    QString oauthAccessToken;
+    QString oauthRefreshToken;
+    qint64 oauthTokenExpiry = 0;
+
     bool isComplete() const;
+    bool hasOAuthSession() const;
 };
 
 class Mailer

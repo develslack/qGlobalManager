@@ -34,6 +34,10 @@ private slots:
     // SMTP
     void onSaveSmtp();
     void onTestSmtp();
+    void onSmtpSecurityChanged(int index);
+    void onSmtpAuthMethodChanged(int index);
+    void onAuthorizeGoogleOAuth();
+    void onClearGoogleOAuth();
 
     // Impresoras
     void onRefreshPrinters();
@@ -89,6 +93,16 @@ private:
     QLineEdit *m_smtpUser = nullptr;
     QLineEdit *m_smtpPass = nullptr;
     QCheckBox *m_smtpShowPass = nullptr;
+    QComboBox *m_smtpAuthMethod = nullptr;
+    QWidget *m_smtpPasswordGroup = nullptr;
+    QWidget *m_smtpOAuthGroup = nullptr;
+    QLineEdit *m_oauthClientId = nullptr;
+    QLineEdit *m_oauthClientSecret = nullptr;
+    QLabel *m_oauthStatusLabel = nullptr;
+
+    QString m_cachedAccessToken;
+    QString m_cachedRefreshToken;
+    qint64 m_cachedTokenExpiry = 0;
 
     // Impresoras
     QComboBox *m_mainPrinterCombo = nullptr;

@@ -1,0 +1,6 @@
+data_dev/
+build/.tmp/*
+build/qGlobalManager
+build/.qmake.stash
+git_init.sh
+googlep.txt

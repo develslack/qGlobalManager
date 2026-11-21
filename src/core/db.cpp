@@ -53,7 +53,12 @@ Database::~Database()
 QString Database::resolveDatabasePath() const
 {
 #ifdef APP_DEBUG_BUILD
-    const QString dataDir = QCoreApplication::applicationDirPath() + QStringLiteral("/data");
+    // En desarrollo, guardar fuera de build/ para que "./build.sh --clean" no borre la BD
+    QDir appDir(QCoreApplication::applicationDirPath());
+    if (appDir.dirName() == QStringLiteral("build")) {
+        appDir.cdUp();
+    }
+    const QString dataDir = appDir.filePath(QStringLiteral("data_dev"));
 #else
     QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     if (dataDir.isEmpty()) {
@@ -181,7 +186,7 @@ bool Database::setSetting(const QString &key, const QString &value, QString *err
         "ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP;"
     ));
     query.bindValue(QStringLiteral(":key"), key);
-    query.bindValue(QStringLiteral(":value"), value);
+    query.bindValue(QStringLiteral(":value"), value.isNull() ? QStringLiteral("") : value);
 
     if (!query.exec()) {
         if (errorMessage) {
