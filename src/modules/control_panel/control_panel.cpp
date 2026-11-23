@@ -8,6 +8,9 @@
 #include "core/mailer.h"
 #include "core/session.h"
 #include "core/oauth2Google.h"
+#include "core/bootstrapConfig.h"
+#include "core/elevationManager.h"
+#include "ui/elevationDialog.h"
 
 #include <QAbstractItemView>
 #include <QApplication>
@@ -142,17 +145,17 @@ void PanelControlModule::setupUi()
 
     const QColor tabIconColor(QStringLiteral("#1E3A5F"));
 
-    m_tabs->addTab(
-        wrapInScroll(buildCompanyTab(), m_tabs),
-        Icons::get(Icons::Name::Company, tabIconColor, 16),
-        QStringLiteral("Empresa"));
+    m_companyTabIndex = m_tabs->addTab(
+    wrapInScroll(buildCompanyTab(), m_tabs),
+    Icons::get(Icons::Name::Company, tabIconColor, 16),
+    QStringLiteral("Empresa"));
 
-    m_tabs->addTab(
+    m_smtpTabIndex = m_tabs->addTab(
         wrapInScroll(buildSmtpTab(), m_tabs),
         Icons::get(Icons::Name::Mail, tabIconColor, 16),
         QStringLiteral("Correo / SMTP"));
 
-    m_tabs->addTab(
+    m_printersTabIndex = m_tabs->addTab(
         wrapInScroll(buildPrintersTab(), m_tabs),
         Icons::get(Icons::Name::Printer, tabIconColor, 16),
         QStringLiteral("Impresoras"));
@@ -163,12 +166,12 @@ void PanelControlModule::setupUi()
         QStringLiteral("Seguridad y Licencia"));
 
     m_supportTablesWidget = new SupportTablesWidget(m_tabs);
-    m_tabs->addTab(
-        wrapInScroll(m_supportTablesWidget, m_tabs),
+    m_supportTablesTabIndex = m_tabs->addTab(
+        m_supportTablesWidget,
         Icons::get(Icons::Name::Table, tabIconColor, 16),
         QStringLiteral("Tablas Soporte"));
 
-    m_tabs->addTab(
+    m_backupAuditTabIndex = m_tabs->addTab(
         wrapInScroll(buildBackupAuditTab(), m_tabs),
         Icons::get(Icons::Name::Backup, tabIconColor, 16),
         QStringLiteral("Respaldo y Auditoría"));
@@ -179,8 +182,13 @@ void PanelControlModule::setupUi()
         Icons::get(Icons::Name::Database, tabIconColor, 16),
         QStringLiteral("Base de Datos"));
 
+    connect(m_tabs, &QTabWidget::currentChanged, this, &PanelControlModule::onTabChanged);
+    connect(&ElevationManager::instance(), &ElevationManager::elevationChanged,
+            this, [this](bool) { applyTabPermissions(); });
+
     bodyLayout()->addWidget(m_tabs, 1);
-    updateDbAdminTabVisibility();
+
+    applyTabPermissions();
 }
 
 QWidget *PanelControlModule::buildCompanyTab()
@@ -676,6 +684,51 @@ QWidget *PanelControlModule::buildSecurityTab()
 #endif
 
     layout->addWidget(licenseGroup);
+
+    // Política de Elevación Desatendida (extensión de políticas del Administrador)
+    auto *elevGroup = new QGroupBox(QStringLiteral("Política de Elevación Desatendida (Supervisores)"), page);
+    auto *elevLayout = new QVBoxLayout(elevGroup);
+    elevLayout->setSpacing(8);
+
+    auto *elevInfo = new QLabel(
+        QStringLiteral("Define qué secciones sensibles pueden desbloquear temporalmente los usuarios con nivel "
+                    "<b>Responsable / Supervisor</b> mediante autogeneración de token auditado:"),
+        elevGroup);
+    elevInfo->setWordWrap(true);
+    elevInfo->setStyleSheet(QStringLiteral("color: #52606D;"));
+    elevLayout->addWidget(elevInfo);
+
+    auto *elevForm = new QFormLayout();
+    elevForm->setRowWrapPolicy(QFormLayout::WrapLongRows);
+
+    m_elevDurationSpin = new QSpinBox(elevGroup);
+    m_elevDurationSpin->setRange(5, 120);
+    m_elevDurationSpin->setSuffix(QStringLiteral(" minutos"));
+    m_elevDurationSpin->setMaximumWidth(150);
+    elevForm->addRow(QStringLiteral("Duración máxima del token:"), m_elevDurationSpin);
+    elevLayout->addLayout(elevForm);
+
+    m_elevAllowSupportCheck = new QCheckBox(QStringLiteral("Permitir elevación en Tablas Soporte"), elevGroup);
+    m_elevAllowBackupCheck  = new QCheckBox(QStringLiteral("Permitir elevación en Respaldo y Auditoría"), elevGroup);
+    m_elevAllowDbAdminCheck = new QCheckBox(QStringLiteral("Permitir elevación en Base de Datos / SQL"), elevGroup);
+    m_elevNotifyEmailCheck  = new QCheckBox(QStringLiteral("Enviar aviso automático al Email Institucional ante cada elevación"), elevGroup);
+
+    elevLayout->addWidget(m_elevAllowSupportCheck);
+    elevLayout->addWidget(m_elevAllowBackupCheck);
+    elevLayout->addWidget(m_elevAllowDbAdminCheck);
+    elevLayout->addWidget(m_elevNotifyEmailCheck);
+
+    auto *elevBtnRow = new QHBoxLayout();
+    auto *saveElevBtn = new QPushButton(QStringLiteral("Guardar política de elevación"), elevGroup);
+    saveElevBtn->setIcon(Icons::get(Icons::Name::Save, QColor(QStringLiteral("#FFFFFF")), 15));
+    elevBtnRow->addWidget(saveElevBtn);
+    elevBtnRow->addStretch();
+    elevLayout->addLayout(elevBtnRow);
+
+    layout->addWidget(elevGroup);
+    connect(saveElevBtn, &QPushButton::clicked, this, &PanelControlModule::onSaveElevationPolicy);
+
+
     layout->addStretch();
 
     connect(changePassBtn, &QPushButton::clicked, this, &PanelControlModule::onChangeAdminPassword);
@@ -691,65 +744,83 @@ QWidget *PanelControlModule::buildBackupAuditTab()
     layout->setContentsMargins(12, 12, 12, 12);
     layout->setSpacing(14);
 
-    // Respaldo SQLite
+    // 1. Respaldos (adaptado a SQLite o MariaDB)
     auto *backupGroup = new QGroupBox(QStringLiteral("Copia de Seguridad de la Base de Datos"), page);
     auto *backupLayout = new QVBoxLayout(backupGroup);
 
-    m_dbLocationLabel = new QLabel(backupGroup);
-    m_dbLocationLabel->setWordWrap(true);
-    m_dbLocationLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    auto *backupDesc = new QLabel(
+        QStringLiteral("Genera un respaldo manual completo de la base activa. En modo SQLite también "
+                       "se ejecutan copias rotativas automáticas al cerrar la aplicación."),
+        backupGroup);
+    backupDesc->setWordWrap(true);
+    backupDesc->setStyleSheet(QStringLiteral("color: #52606D;"));
+    backupLayout->addWidget(backupDesc);
 
-    m_lastBackupLabel = new QLabel(backupGroup);
-    m_lastBackupLabel->setWordWrap(true);
-
-    auto *backupBtnRow = new QHBoxLayout();
-    auto *backupBtn = new QPushButton(QStringLiteral("Crear copia de seguridad (.sqlite)"), backupGroup);
-    backupBtn->setIcon(Icons::get(Icons::Name::Backup, QColor(QStringLiteral("#FFFFFF")), 16));
-    backupBtnRow->addWidget(backupBtn);
-    backupBtnRow->addStretch();
-
-    backupLayout->addWidget(m_dbLocationLabel);
-    backupLayout->addWidget(m_lastBackupLabel);
-    backupLayout->addLayout(backupBtnRow);
+    auto *bRow = new QHBoxLayout();
+    m_backupBtn = new QPushButton(QStringLiteral("Generar respaldo ahora"), backupGroup);
+    m_backupBtn->setIcon(Icons::get(Icons::Name::Backup, QColor(QStringLiteral("#FFFFFF")), 16));
+    bRow->addWidget(m_backupBtn);
+    bRow->addStretch();
+    backupLayout->addLayout(bRow);
     layout->addWidget(backupGroup);
 
-    // Bitácora de auditoría
-    auto *auditGroup = new QGroupBox(QStringLiteral("Registro de Auditoría (Últimos 200 eventos)"), page);
+    // 2. Bitácora inmutable de auditoría + Verificador SHA-256
+    auto *auditGroup = new QGroupBox(QStringLiteral("Bitácora de Auditoría Inmutable (Hash Chaining SHA-256)"), page);
     auto *auditLayout = new QVBoxLayout(auditGroup);
+    auditLayout->setSpacing(10);
 
-    auto *auditHeader = new QHBoxLayout();
+    auto *auditBar = new QHBoxLayout();
+    auto *verifyBtn = new QPushButton(QStringLiteral("Verificar integridad (SHA-256)"), auditGroup);
+    verifyBtn->setIcon(Icons::get(Icons::Name::Shield, QColor(QStringLiteral("#FFFFFF")), 15));
+
     auto *refreshAuditBtn = new QPushButton(QStringLiteral("Actualizar bitácora"), auditGroup);
     refreshAuditBtn->setIcon(Icons::get(Icons::Name::Refresh, QColor(QStringLiteral("#1E3A5F")), 15));
     refreshAuditBtn->setProperty("secondary", true);
-    auditHeader->addWidget(refreshAuditBtn);
-    auditHeader->addStretch();
-    auditLayout->addLayout(auditHeader);
+
+    m_auditIntegrityLabel = new QLabel(
+        QStringLiteral("Pulsa \"Verificar integridad\" para auditar la cadena criptográfica SHA-256."),
+        auditGroup);
+    m_auditIntegrityLabel->setWordWrap(true);
+    m_auditIntegrityLabel->setStyleSheet(QStringLiteral("color: #52606D;"));
+
+    auditBar->addWidget(verifyBtn);
+    auditBar->addWidget(refreshAuditBtn);
+    auditBar->addSpacing(8);
+    auditBar->addWidget(m_auditIntegrityLabel, 1);
+    auditLayout->addLayout(auditBar);
 
     m_auditTable = new QTableWidget(auditGroup);
-    m_auditTable->setColumnCount(5);
+    m_auditTable->setColumnCount(7);
     m_auditTable->setHorizontalHeaderLabels({
-        QStringLiteral("Fecha / Hora"),
+        QStringLiteral("Fecha (UTC)"),
         QStringLiteral("Usuario"),
-        QStringLiteral("Módulo"),
+        QStringLiteral("Rol"),
+        QStringLiteral("Módulo / Tabla"),
         QStringLiteral("Acción"),
-        QStringLiteral("Detalle")
+        QStringLiteral("Contexto"),
+        QStringLiteral("Detalle / Puesto")
     });
     m_auditTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_auditTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_auditTable->setAlternatingRowColors(true);
+    m_auditTable->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
     m_auditTable->verticalHeader()->setVisible(false);
     m_auditTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     m_auditTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     m_auditTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     m_auditTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    m_auditTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
-    m_auditTable->setMinimumHeight(230);
+    m_auditTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+    m_auditTable->horizontalHeader()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
+    m_auditTable->horizontalHeader()->setSectionResizeMode(6, QHeaderView::Stretch);
+    m_auditTable->setMinimumHeight(280);
     auditLayout->addWidget(m_auditTable, 1);
 
     layout->addWidget(auditGroup, 1);
 
-    connect(backupBtn, &QPushButton::clicked, this, &PanelControlModule::onCreateBackup);
-    connect(refreshAuditBtn, &QPushButton::clicked, this, &PanelControlModule::onRefreshAuditLog);
+    connect(m_backupBtn, &QPushButton::clicked, this, &PanelControlModule::onCreateBackup);
+    connect(verifyBtn, &QPushButton::clicked, this, &PanelControlModule::onVerifyAuditIntegrity);
+    connect(refreshAuditBtn, &QPushButton::clicked, this, &PanelControlModule::loadAuditLog);
+
     return page;
 }
 
@@ -757,8 +828,8 @@ void PanelControlModule::onActivated()
 {
     loadAllSettings();
     m_supportTablesWidget->reloadAll();
-    onRefreshAuditLog();
-    updateDbAdminTabVisibility();
+    //loadAuditLog();
+    applyTabPermissions();
     updateFirstLoginAlert();
 }
 
@@ -865,20 +936,23 @@ void PanelControlModule::loadAllSettings()
         lic.valid ? QStringLiteral("color: #2E7D32; font-weight: 600;")
                   : QStringLiteral("color: #B7791F; font-weight: 600;"));
 
-    // Respaldo
-    m_dbLocationLabel->setText(
-        QStringLiteral("<b>Base de datos actual:</b> %1").arg(db.databasePath().toHtmlEscaped()));
-    const QString lastBackup = db.getSetting(QStringLiteral("backup.last_timestamp"), QStringLiteral("Ninguno registrado aún"));
-    m_lastBackupLabel->setText(QStringLiteral("<b>Última copia de seguridad:</b> %1").arg(lastBackup.toHtmlEscaped()));
+    // Política de elevación desatendida (Supervisores)
+    const ElevationPolicy elevPol = ElevationManager::loadPolicy();
+    if (m_elevDurationSpin) {
+        m_elevDurationSpin->setValue(elevPol.durationMinutes);
+        m_elevAllowSupportCheck->setChecked(elevPol.allowSupportTables);
+        m_elevAllowBackupCheck->setChecked(elevPol.allowBackupAudit);
+        m_elevAllowDbAdminCheck->setChecked(elevPol.allowDbAdmin);
+        m_elevNotifyEmailCheck->setChecked(elevPol.notifyByEmail);
+    }
+
+    // Respaldo y Auditoría
+    loadAuditLog();
 }
 
 void PanelControlModule::updateDbAdminTabVisibility()
 {
-    const bool allowed = LicenseToken::isDbAdminAllowed();
-    m_tabs->setTabVisible(m_dbAdminTabIndex, allowed);
-    if (allowed) {
-        m_dbAdminWidget->refreshTables();
-    }
+    applyTabPermissions();
 }
 
 void PanelControlModule::updateFirstLoginAlert()
@@ -945,7 +1019,7 @@ void PanelControlModule::onSelectCompanyLogo()
 
 void PanelControlModule::onSaveCompany()
 {
-    if (!requirePermission(QStringLiteral("access"), QStringLiteral("modificar datos de la empresa"))) {
+    if (!requirePermission(QStringLiteral("company"), QStringLiteral("modificar datos de la empresa"))) {
         return;
     }
 
@@ -1287,56 +1361,143 @@ void PanelControlModule::onGenerateDevToken()
 
 void PanelControlModule::onCreateBackup()
 {
-    const QString defaultName = QStringLiteral("qGlobalManager_backup_%1.sqlite")
-                                    .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss")));
+    const bool hasAccess = Session::instance().currentUser().isAdmin ||
+                           Session::instance().hasPermission(moduleId(), QStringLiteral("backup_audit")) ||
+                           ElevationManager::instance().hasActiveElevationFor(QStringLiteral("backup_audit"));
+    if (!hasAccess) {
+        QMessageBox::warning(this, QStringLiteral("Acceso restringido"),
+                             QStringLiteral("No tienes permisos activos para generar respaldos."));
+        return;
+    }
 
-    const QString destPath = QFileDialog::getSaveFileName(
-        this,
-        QStringLiteral("Guardar copia de seguridad"),
-        QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).filePath(defaultName),
+    const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss"));
+
+    if (Database::instance().isMariaDb()) {
+        const QString suggested = QDir(BootstrapConfig::protectedDbDirPath())
+                                      .filePath(QStringLiteral("respaldo_mariadb_%1.sql").arg(stamp));
+        const QString dest = QFileDialog::getSaveFileName(
+            this, QStringLiteral("Guardar respaldo SQL de MariaDB"), suggested,
+            QStringLiteral("Script SQL (*.sql)"));
+        if (dest.isEmpty()) return;
+
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+        QString outPath, err;
+        const bool ok = Database::instance().createSqlDump(true, &outPath, &err, dest);
+        QApplication::restoreOverrideCursor();
+
+        if (ok) {
+            Database::instance().logAudit(
+                Session::instance().currentUser().email, moduleId(),
+                QStringLiteral("backup_mariadb"), QStringLiteral("Archivo: %1").arg(outPath));
+            loadAuditLog();
+            QMessageBox::information(this, QStringLiteral("Respaldo completado"),
+                                     QStringLiteral("El dump SQL de MariaDB se guardó en:\n%1").arg(outPath));
+        } else {
+            QMessageBox::critical(this, QStringLiteral("Error de respaldo"), err);
+        }
+        return;
+    }
+
+    // Modo SQLite
+    const QString suggested = QDir(BootstrapConfig::autoBackupDirPath())
+                                  .filePath(QStringLiteral("qGlobalManager_backup_%1.sqlite").arg(stamp));
+    const QString dest = QFileDialog::getSaveFileName(
+        this, QStringLiteral("Guardar copia de seguridad SQLite"), suggested,
         QStringLiteral("Base de datos SQLite (*.sqlite)"));
+    if (dest.isEmpty()) return;
 
-    if (destPath.isEmpty()) {
-        return;
-    }
-
-    if (QFile::exists(destPath)) {
-        QFile::remove(destPath);
-    }
-
-    QSqlQuery query(Database::instance().connection());
-    QString escapedPath = destPath;
-    escapedPath.replace(QLatin1Char('\''), QStringLiteral("''"));
-
-    bool ok = query.exec(QStringLiteral("VACUUM INTO '%1';").arg(escapedPath));
+    QString escaped = dest;
+    escaped.replace(QLatin1Char('\''), QStringLiteral("''"));
+    QSqlQuery q(Database::instance().connection());
+    bool ok = q.exec(QStringLiteral("VACUUM INTO '%1';").arg(escaped));
     if (!ok) {
-        // Fallback seguro si el motor SQLite local fuera antiguo
-        query.exec(QStringLiteral("PRAGMA wal_checkpoint(TRUNCATE);"));
-        ok = QFile::copy(Database::instance().databasePath(), destPath);
+        q.exec(QStringLiteral("PRAGMA wal_checkpoint(TRUNCATE);"));
+        QFile::remove(dest);
+        ok = QFile::copy(Database::instance().databasePath(), dest);
     }
 
-    if (!ok) {
+    if (ok) {
+        Database::instance().logAudit(
+            Session::instance().currentUser().email, moduleId(),
+            QStringLiteral("backup_sqlite"), QStringLiteral("Archivo: %1").arg(dest));
+        loadAuditLog();
+        QMessageBox::information(this, QStringLiteral("Respaldo completado"),
+                                 QStringLiteral("Copia de seguridad creada correctamente en:\n%1").arg(dest));
+    } else {
         QMessageBox::critical(this, QStringLiteral("Error de respaldo"),
-                              QStringLiteral("No se pudo crear la copia de seguridad en:\n%1").arg(destPath));
-        return;
+                              QStringLiteral("No se pudo generar la copia de seguridad en:\n%1").arg(dest));
     }
-
-    const QString nowStr = QDateTime::currentDateTime().toString(QStringLiteral("dd/MM/yyyy HH:mm:ss"));
-    Database::instance().setSetting(QStringLiteral("backup.last_timestamp"), nowStr);
-    m_lastBackupLabel->setText(QStringLiteral("<b>Última copia de seguridad:</b> %1").arg(nowStr));
-
-    Database::instance().logAudit(Session::instance().currentUser().email, moduleId(),
-                                  QStringLiteral("db_backup"), destPath);
-    onRefreshAuditLog();
-
-    QMessageBox::information(this, QStringLiteral("Copia creada"),
-                             QStringLiteral("Copia de seguridad guardada correctamente en:\n%1").arg(destPath));
 }
 
 
+
+void PanelControlModule::loadAuditLog()
+{
+    if (!m_auditTable) return;
+    m_auditTable->setRowCount(0);
+
+    if (m_backupBtn) {
+        m_backupBtn->setText(Database::instance().isMariaDb()
+                                 ? QStringLiteral("Generar Dump SQL de respaldo (MariaDB)")
+                                 : QStringLiteral("Generar copia de seguridad (SQLite)"));
+    }
+
+    QSqlQuery query(Database::instance().connection());
+    if (!query.exec(QStringLiteral(
+            "SELECT created_at, user_email, user_full_name, user_role, module_id, "
+            "       target_table, action, auth_context, workstation, details "
+            "FROM audit_log ORDER BY id DESC LIMIT 200;"))) {
+        return;
+    }
+
+    int row = 0;
+    while (query.next()) {
+        const QString createdAt  = query.value(0).toString();
+        const QString email      = query.value(1).toString();
+        const QString fullName   = query.value(2).toString();
+        const QString role       = query.value(3).toString();
+        const QString modId      = query.value(4).toString();
+        const QString tbl        = query.value(5).toString();
+        const QString action     = query.value(6).toString();
+        const QString authCtx    = query.value(7).toString();
+        const QString ws         = query.value(8).toString();
+        const QString details    = query.value(9).toString();
+
+        const QString userLabel = fullName.isEmpty() ? email : QStringLiteral("%1 (%2)").arg(fullName, email);
+        const QString modTbl    = tbl.isEmpty() ? modId : QStringLiteral("%1 / %2").arg(modId, tbl);
+        const QString detailAll = ws.isEmpty() ? details : QStringLiteral("[%1] %2").arg(ws, details);
+
+        const bool isTokenEvent = authCtx.startsWith(QStringLiteral("TOKEN_ELEVATION")) ||
+                                  action.startsWith(QStringLiteral("TOKEN_ELEVATION"));
+
+        m_auditTable->insertRow(row);
+        m_auditTable->setItem(row, 0, new QTableWidgetItem(createdAt));
+        m_auditTable->setItem(row, 1, new QTableWidgetItem(userLabel));
+        m_auditTable->setItem(row, 2, new QTableWidgetItem(role));
+        m_auditTable->setItem(row, 3, new QTableWidgetItem(modTbl));
+        m_auditTable->setItem(row, 4, new QTableWidgetItem(action));
+        m_auditTable->setItem(row, 5, new QTableWidgetItem(authCtx));
+        m_auditTable->setItem(row, 6, new QTableWidgetItem(detailAll));
+
+        if (isTokenEvent) {
+            const QBrush bg(QColor(QStringLiteral("#FFF8E1")));
+            const QBrush fg(QColor(QStringLiteral("#744210")));
+            for (int c = 0; c < 7; ++c) {
+                if (QTableWidgetItem *it = m_auditTable->item(row, c)) {
+                    it->setBackground(bg);
+                    if (c == 4 || c == 5) {
+                        it->setForeground(fg);
+                    }
+                }
+            }
+        }
+        ++row;
+    }
+}
+
 // ============================================================================================================================================================= //
 
-
+/*
 void PanelControlModule::onRefreshAuditLog()
 {
     m_auditTable->setRowCount(0);
@@ -1357,7 +1518,7 @@ void PanelControlModule::onRefreshAuditLog()
         ++row;
     }
 }
-
+*/
 
 // ============================================================================================================================================================= //
 
@@ -1634,3 +1795,252 @@ void PanelControlModule::onTestSmtp()
 
 
 // ============================================================================================================================================================= //
+
+
+QString PanelControlModule::tabElevationScope(int index) const
+{
+    if (index == m_supportTablesTabIndex) return QStringLiteral("support_tables");
+    if (index == m_backupAuditTabIndex)   return QStringLiteral("backup_audit");
+    if (index == m_dbAdminTabIndex)       return QStringLiteral("db_admin");
+    return QString();
+}
+
+QString PanelControlModule::baseTabTitle(int index) const
+{
+    if (index == m_companyTabIndex)       return QStringLiteral("Empresa");
+    if (index == m_smtpTabIndex)          return QStringLiteral("Correo / SMTP");
+    if (index == m_printersTabIndex)      return QStringLiteral("Impresoras");
+    if (index == m_securityTabIndex)      return QStringLiteral("Seguridad y Licencia");
+    if (index == m_supportTablesTabIndex) return QStringLiteral("Tablas Soporte");
+    if (index == m_backupAuditTabIndex)   return QStringLiteral("Respaldo y Auditoría");
+    if (index == m_dbAdminTabIndex)       return QStringLiteral("Base de Datos");
+    return QString();
+}
+
+Icons::Name PanelControlModule::baseTabIcon(int index) const
+{
+    if (index == m_companyTabIndex)       return Icons::Name::Company;
+    if (index == m_smtpTabIndex)          return Icons::Name::Mail;
+    if (index == m_printersTabIndex)      return Icons::Name::Printer;
+    if (index == m_securityTabIndex)      return Icons::Name::Shield;
+    if (index == m_supportTablesTabIndex) return Icons::Name::Table;
+    if (index == m_backupAuditTabIndex)   return Icons::Name::Backup;
+    return Icons::Name::Database;
+}
+
+bool PanelControlModule::isTabUnlocked(int index) const
+{
+    const Session &s = Session::instance();
+    const bool isAdmin = s.currentUser().isAdmin;
+
+    if (index == m_companyTabIndex) {
+        return isAdmin || s.hasPermission(moduleId(), QStringLiteral("company"));
+    }
+    if (index == m_smtpTabIndex) {
+        return isAdmin || s.hasPermission(moduleId(), QStringLiteral("smtp"));
+    }
+    if (index == m_printersTabIndex) {
+        return isAdmin || s.hasPermission(moduleId(), QStringLiteral("printers"));
+    }
+    if (index == m_securityTabIndex) {
+        return isAdmin || s.hasPermission(moduleId(), QStringLiteral("security"));
+    }
+    if (index == m_supportTablesTabIndex) {
+        return isAdmin ||
+               s.hasPermission(moduleId(), QStringLiteral("support_tables")) ||
+               ElevationManager::instance().hasActiveElevationFor(QStringLiteral("support_tables"));
+    }
+    if (index == m_backupAuditTabIndex) {
+        return isAdmin ||
+               s.hasPermission(moduleId(), QStringLiteral("backup_audit")) ||
+               ElevationManager::instance().hasActiveElevationFor(QStringLiteral("backup_audit"));
+    }
+    if (index == m_dbAdminTabIndex) {
+        if (!LicenseToken::isDbAdminAllowed()) {
+            return false;
+        }
+        return isAdmin ||
+               s.hasPermission(moduleId(), QStringLiteral("db_admin")) ||
+               ElevationManager::instance().hasActiveElevationFor(QStringLiteral("db_admin"));
+    }
+    return false;
+}
+
+void PanelControlModule::applyTabPermissions()
+{
+    if (!m_tabs) return;
+
+    const bool dbLicensed = LicenseToken::isDbAdminAllowed();
+    m_tabs->setTabVisible(m_dbAdminTabIndex, dbLicensed);
+
+    const QColor normalColor(QStringLiteral("#1E3A5F"));
+    const QColor lockedColor(QStringLiteral("#9AA5B1"));
+    const QColor tokenColor(QStringLiteral("#B7791F"));
+
+    int firstUnlocked = -1;
+
+    for (int i = 0; i < m_tabs->count(); ++i) {
+        if (!m_tabs->isTabVisible(i)) {
+            continue;
+        }
+
+        const QString title = baseTabTitle(i);
+        const QString scope = tabElevationScope(i);
+        const bool unlocked = isTabUnlocked(i);
+        const bool viaToken = !scope.isEmpty() && ElevationManager::instance().hasActiveElevationFor(scope);
+
+        if (unlocked && firstUnlocked < 0) {
+            firstUnlocked = i;
+        }
+
+        if (viaToken) {
+            m_tabs->setTabIcon(i, Icons::get(Icons::Name::Unlock, tokenColor, 16));
+            m_tabs->setTabText(i, QStringLiteral("%1 [Token]").arg(title));
+            m_tabs->setTabToolTip(i, QStringLiteral("Acceso temporal habilitado por token de elevación (auditado)."));
+        } else if (unlocked) {
+            m_tabs->setTabIcon(i, Icons::get(baseTabIcon(i), normalColor, 16));
+            m_tabs->setTabText(i, title);
+            m_tabs->setTabToolTip(i, title);
+        } else {
+            m_tabs->setTabIcon(i, Icons::get(Icons::Name::Lock, lockedColor, 16));
+            m_tabs->setTabText(i, title);
+            m_tabs->setTabToolTip(
+                i,
+                scope.isEmpty()
+                    ? QStringLiteral("Sección restringida para tu perfil de usuario.")
+                    : QStringLiteral("Sección protegida · Requiere rol Administrador o Token de elevación temporal."));
+        }
+    }
+
+    // Si la solapa actual quedó bloqueada (por ejemplo, al vencer o revocar un token), volver a una permitida
+    const int current = m_tabs->currentIndex();
+    if (!isTabUnlocked(current) || !m_tabs->isTabVisible(current)) {
+        m_handlingTabChange = true;
+        const int target = (firstUnlocked >= 0) ? firstUnlocked : 0;
+        m_tabs->setCurrentIndex(target);
+        m_lastAllowedTabIndex = target;
+        m_handlingTabChange = false;
+    } else {
+        m_lastAllowedTabIndex = current;
+    }
+
+    if (dbLicensed && isTabUnlocked(m_dbAdminTabIndex) && m_dbAdminWidget) {
+        m_dbAdminWidget->refreshTables();
+    }
+}
+
+void PanelControlModule::onTabChanged(int index)
+{
+    if (index < 0 || m_handlingTabChange) {
+        return;
+    }
+
+    if (isTabUnlocked(index)) {
+        m_lastAllowedTabIndex = index;
+        if (index == m_dbAdminTabIndex && m_dbAdminWidget) {
+            m_dbAdminWidget->refreshTables();
+        } else if (index == m_backupAuditTabIndex) {
+            loadAuditLog();
+        } else if (index == m_supportTablesTabIndex && m_supportTablesWidget) {
+            m_supportTablesWidget->reloadAll();
+        }
+        return;
+    }
+
+    // Volver inmediatamente a la solapa previa para no exponer ningún dato de la solapa bloqueada
+    m_handlingTabChange = true;
+    const int fallback = (m_lastAllowedTabIndex >= 0 && m_lastAllowedTabIndex < m_tabs->count())
+                             ? m_lastAllowedTabIndex
+                             : 0;
+    m_tabs->setCurrentIndex(fallback);
+    m_handlingTabChange = false;
+
+    const QString scope = tabElevationScope(index);
+    const QString title = baseTabTitle(index);
+
+    // Solapas sin elevación por token (ej. Seguridad y Licencia exclusiva del Admin, o Empresa/SMTP para Operador)
+    if (scope.isEmpty()) {
+        QMessageBox::warning(
+            this,
+            QStringLiteral("Acceso restringido"),
+            QStringLiteral("No tienes permisos para acceder a la solapa \"%1\".\n\n"
+                           "Si necesitas operar en esta sección, solicita autorización al Administrador.")
+                .arg(title));
+        return;
+    }
+
+    // Verificar si el usuario tiene perfil habilitado para autogenerar token temporal
+    QString denialReason;
+    if (!ElevationManager::instance().canCurrentUserRequestElevation(scope, &denialReason)) {
+        QMessageBox::warning(this, QStringLiteral("Permisos insuficientes"), denialReason);
+        return;
+    }
+
+    // Usuario Supervisor / Responsable -> abrir diálogo desatendido de elevación temporal
+    ElevationDialog dlg(scope, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        applyTabPermissions();
+        m_tabs->setCurrentIndex(index);
+    }
+}
+
+void PanelControlModule::onSaveElevationPolicy()
+{
+    if (!Session::instance().currentUser().isAdmin) {
+        QMessageBox::warning(this, QStringLiteral("Solo Administrador"),
+                             QStringLiteral("Solo el usuario Administrador puede modificar la política de elevación."));
+        return;
+    }
+
+    ElevationPolicy pol;
+    pol.durationMinutes    = m_elevDurationSpin->value();
+    pol.allowSupportTables = m_elevAllowSupportCheck->isChecked();
+    pol.allowBackupAudit   = m_elevAllowBackupCheck->isChecked();
+    pol.allowDbAdmin       = m_elevAllowDbAdminCheck->isChecked();
+    pol.notifyByEmail      = m_elevNotifyEmailCheck->isChecked();
+
+    QString err;
+    if (!ElevationManager::savePolicy(pol, &err)) {
+        QMessageBox::warning(this, QStringLiteral("Error"),
+                             QStringLiteral("No se pudo guardar la política de elevación:\n%1").arg(err));
+        return;
+    }
+
+    Database::instance().logAudit(
+        Session::instance().currentUser().email,
+        moduleId(),
+        QStringLiteral("elevation_policy_save"),
+        QStringLiteral("Duración: %1 min | Soporte:%2 | Respaldo:%3 | SQL:%4 | Email:%5")
+            .arg(pol.durationMinutes)
+            .arg(pol.allowSupportTables ? 1 : 0)
+            .arg(pol.allowBackupAudit ? 1 : 0)
+            .arg(pol.allowDbAdmin ? 1 : 0)
+            .arg(pol.notifyByEmail ? 1 : 0));
+
+    QMessageBox::information(
+        this,
+        QStringLiteral("Política guardada"),
+        QStringLiteral("La política de elevación desatendida para Supervisores se actualizó correctamente."));
+}
+
+void PanelControlModule::onVerifyAuditIntegrity()
+{
+    int brokenId = -1;
+    QString report;
+    const bool intact = Database::instance().verifyAuditChain(&brokenId, &report);
+
+    m_auditIntegrityLabel->setText(report);
+    if (intact) {
+        m_auditIntegrityLabel->setStyleSheet(
+            QStringLiteral("background-color: #E8F5E9; color: #2E7D32; border: 1px solid #C8E6C9; "
+                           "padding: 6px 10px; border-radius: 5px; font-weight: 600;"));
+    } else {
+        m_auditIntegrityLabel->setStyleSheet(
+            QStringLiteral("background-color: #FDE8E8; color: #C53030; border: 1px solid #F8B4B4; "
+                           "padding: 6px 10px; border-radius: 5px; font-weight: 600;"));
+        QMessageBox::critical(
+            this,
+            QStringLiteral("Alerta de integridad de bitácora"),
+            QStringLiteral("Se detectó una alteración externa en la cadena SHA-256 de la bitácora.\n\n%1").arg(report));
+    }
+}

@@ -2,6 +2,7 @@
 #define MODULES_CONTROL_PANEL_CONTROL_PANEL_H
 
 #include "core/moduleBase.h"
+#include "core/icons.h"
 
 class DbAdminWidget;
 class QCheckBox;
@@ -29,6 +30,14 @@ public:
     void onActivated() override;
 
 private slots:
+
+    // Control de acceso / candados por solapa
+    void onTabChanged(int index);
+
+    // Política de elevación e integridad de bitácora
+    void onSaveElevationPolicy();
+    void onVerifyAuditIntegrity();
+
     // Empresa
     void onSelectCompanyLogo();
     void onSaveCompany();
@@ -57,7 +66,7 @@ private slots:
 
     // Respaldo y Auditoría
     void onCreateBackup();
-    void onRefreshAuditLog();
+    void loadAuditLog();
 
 private:
     void setupUi();
@@ -146,13 +155,38 @@ private:
     QDateEdit *m_devTokenExpiry = nullptr;
 
     // Respaldo y Auditoría
-    QLabel *m_lastBackupLabel = nullptr;
-    QLabel *m_dbLocationLabel = nullptr;
     QTableWidget *m_auditTable = nullptr;
 
     // Sub-widgets
     SupportTablesWidget *m_supportTablesWidget = nullptr;
     DbAdminWidget *m_dbAdminWidget = nullptr;
+
+    void applyTabPermissions();
+    bool isTabUnlocked(int index) const;
+    QString tabElevationScope(int index) const;
+    QString baseTabTitle(int index) const;
+    Icons::Name baseTabIcon(int index) const;
+
+    int m_companyTabIndex = -1;
+    int m_smtpTabIndex = -1;
+    int m_printersTabIndex = -1;
+    int m_supportTablesTabIndex = -1;
+    int m_backupAuditTabIndex = -1;
+    //int m_dbAdminTabIndex = -1;
+    int m_lastAllowedTabIndex = -1;
+    bool m_handlingTabChange = false;
+
+    // Política de elevación (en solapa Seguridad y Licencia)
+    QSpinBox *m_elevDurationSpin = nullptr;
+    QCheckBox *m_elevAllowSupportCheck = nullptr;
+    QCheckBox *m_elevAllowBackupCheck = nullptr;
+    QCheckBox *m_elevAllowDbAdminCheck = nullptr;
+    QCheckBox *m_elevNotifyEmailCheck = nullptr;
+
+    // Verificador de integridad de bitácora (en solapa Respaldo y Auditoría)
+    QLabel *m_auditIntegrityLabel = nullptr;
+    QPushButton *m_backupBtn = nullptr;
+
 };
 
 #endif // MODULES_PANEL_CONTROL_PANEL_CONTROL_H

@@ -7,6 +7,7 @@
 #include <QVector>
 #include <functional>
 
+class QFrame;
 class ModuleBase;
 class QLabel;
 class QListWidget;
@@ -38,6 +39,9 @@ private slots:
     void onInactivityWarningStarted(int secondsRemaining);
     void onInactivityCountdownTick(int secondsRemaining);
     void onLogoutClicked();
+    void onElevationChanged(bool active);
+    void onElevationTick(int remainingSeconds);
+    void onElevationExpired(const QString &scopeDisplayName);
 
 private:
     struct ModuleEntry
@@ -83,6 +87,10 @@ private:
     QVector<ModuleEntry> m_registry;
     QVector<QString> m_sidebarModuleIds;
     QHash<QString, LoadedModule> m_loadedModules;
+
+    QFrame *m_elevationBanner = nullptr;
+    QLabel *m_elevationLabel = nullptr;
+    QPushButton *m_revokeElevationBtn = nullptr;
 };
 
 #endif // UI_MAINWINDOW_H

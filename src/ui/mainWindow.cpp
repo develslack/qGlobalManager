@@ -7,7 +7,9 @@
 #include "modules/users/users.h"
 #include "loginDialog.h"
 #include "changePasswordDialog.h"
+#include "core/elevationManager.h"
 
+#include <QFrame>
 #include <QTimer>
 #include <QApplication>
 #include <QFrame>
@@ -84,6 +86,37 @@ void MainWindow::setupUi()
 
     m_currentSectionLabel = new QLabel(QStringLiteral("<b>Inicio</b>"), topBar);
     m_currentSectionLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
+    // Insignia de elevación temporal (solo visible cuando un Supervisor tiene un token activo)
+    m_elevationBanner = new QFrame(topBar);
+    m_elevationBanner->setStyleSheet(
+        QStringLiteral("QFrame { background-color: #FFF3CD; border: 1px solid #F6AD55; border-radius: 5px; }"));
+    auto *elevLayout = new QHBoxLayout(m_elevationBanner);
+    elevLayout->setContentsMargins(8, 3, 6, 3);
+    elevLayout->setSpacing(6);
+
+    m_elevationLabel = new QLabel(m_elevationBanner);
+    m_elevationLabel->setStyleSheet(QStringLiteral("color: #744210; font-weight: 600; border: none; background: transparent;"));
+
+    m_revokeElevationBtn = new QPushButton(QStringLiteral("Cerrar elevación"), m_elevationBanner);
+    m_revokeElevationBtn->setIcon(Icons::get(Icons::Name::Lock, QColor(QStringLiteral("#1E3A5F")), 13));
+    m_revokeElevationBtn->setProperty("secondary", true);
+
+    elevLayout->addWidget(m_elevationLabel);
+    elevLayout->addWidget(m_revokeElevationBtn);
+    m_elevationBanner->hide();
+
+    topBarLayout->addWidget(m_elevationBanner); // Colocar justo antes de topBarLayout->addWidget(m_controlPanelBtn);
+
+    connect(m_revokeElevationBtn, &QPushButton::clicked, this, []() {
+        ElevationManager::instance().revokeActiveElevation(false);
+    });
+    connect(&ElevationManager::instance(), &ElevationManager::elevationChanged,
+            this, &MainWindow::onElevationChanged);
+    connect(&ElevationManager::instance(), &ElevationManager::elevationTick,
+            this, &MainWindow::onElevationTick);
+    connect(&ElevationManager::instance(), &ElevationManager::elevationExpired,
+            this, &MainWindow::onElevationExpired);
 
     m_controlPanelBtn = new QPushButton(QStringLiteral("Panel de Control"), topBar);
     m_controlPanelBtn->setObjectName(QStringLiteral("ControlPanelBtn"));
@@ -373,6 +406,8 @@ void MainWindow::onModuleSelected(int row)
 
 void MainWindow::onSessionStarted()
 {
+    ElevationManager::instance().revokeActiveElevation(false);
+
     const UserSessionInfo &user = Session::instance().currentUser();
 
     m_controlPanelBtn->setVisible(
@@ -547,4 +582,39 @@ void MainWindow::closeWarningDialog()
         m_warningBox->deleteLater();
         m_warningBox = nullptr;
     }
+}
+
+
+void MainWindow::onElevationChanged(bool active)
+{
+    m_elevationBanner->setVisible(active);
+    if (active) {
+        onElevationTick(ElevationManager::instance().remainingSeconds());
+    }
+}
+
+void MainWindow::onElevationTick(int remainingSeconds)
+{
+    if (!ElevationManager::instance().isElevationActive()) {
+        m_elevationBanner->hide();
+        return;
+    }
+    const int mins = remainingSeconds / 60;
+    const int secs = remainingSeconds % 60;
+    const QString scopeName = ElevationManager::instance().activeElevation().scopeDisplayName;
+    m_elevationLabel->setText(
+        QStringLiteral("Elevación activa (%1): %2:%3")
+            .arg(scopeName)
+            .arg(mins, 2, 10, QLatin1Char('0'))
+            .arg(secs, 2, 10, QLatin1Char('0')));
+}
+
+void MainWindow::onElevationExpired(const QString &scopeDisplayName)
+{
+    QMessageBox::information(
+        this,
+        QStringLiteral("Token de elevación vencido"),
+        QStringLiteral("Finalizó el tiempo autorizado para acceder a \"%1\".\n\n"
+                       "La sección volvió a quedar bloqueada por seguridad.")
+            .arg(scopeDisplayName));
 }

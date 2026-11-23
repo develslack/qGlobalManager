@@ -1,5 +1,6 @@
 #include "db.h"
 #include "session.h"
+#include "elevationManager.h"
 
 #include <QCoreApplication>
 #include <QCryptographicHash>
@@ -583,7 +584,7 @@ void Database::logAuditEvent(const AuditEvent &event)
         if (ev.userRole.isEmpty()) ev.userRole = u.roleName;
     }
     if (ev.authContext.isEmpty()) {
-        ev.authContext = QStringLiteral("NORMAL");
+        ev.authContext = ElevationManager::instance().activeAuthContext();
     }
 
     const QString workstation = QStringLiteral("Puesto #%1 (%2)")
