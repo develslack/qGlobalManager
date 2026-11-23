@@ -7,6 +7,9 @@
 
 struct SmtpConfig
 {
+    QString mode = QStringLiteral("BASIC");            // "BASIC" o "ADVANCED"
+    QString provider = QStringLiteral("GMAIL");        // "GMAIL", "OUTLOOK", "YAHOO", "ICLOUD", "CUSTOM"
+
     QString fromEmail;
     QString fromName;
     QString host;
@@ -34,6 +37,7 @@ class Mailer
 public:
     static SmtpConfig loadConfig();
     static bool saveConfig(const SmtpConfig &config, QString *errorMessage = nullptr);
+    static QString normalizePasswordIfAppPassword(const QString &rawPassword, const QString &providerOrHost);
 
     static bool sendMail(const QString &toEmail,
                          const QString &subject,

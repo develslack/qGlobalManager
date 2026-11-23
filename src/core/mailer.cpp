@@ -7,6 +7,7 @@
 #include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QSslSocket>
 #include <QStringList>
 
@@ -19,6 +20,33 @@ QByteArray maskKey()
     return QCryptographicHash::hash(
         QByteArrayLiteral("qGlobalManager::SMTP::v1::SaltKey"),
         QCryptographicHash::Sha256);
+}
+
+QString friendlySmtpError(int code, const QString &rawResponse)
+{
+    if (code == 534 && rawResponse.contains(QStringLiteral("5.7.9"), Qt::CaseInsensitive)) {
+        return QStringLiteral(
+            "Gmail requiere una \"Contraseña de aplicación\" de 16 letras (no tu contraseña habitual).\n\n"
+            "Genera una desde tu cuenta de Google (Seguridad → Contraseñas de aplicaciones) y pégala en el campo Contraseña.\n\n"
+            "Detalle técnico: %1").arg(rawResponse);
+    }
+
+    if (code == 535 && (rawResponse.contains(QStringLiteral("5.7.8"), Qt::CaseInsensitive) ||
+                        rawResponse.contains(QStringLiteral("BadCredentials"), Qt::CaseInsensitive))) {
+        return QStringLiteral(
+            "El servidor rechazó el correo o la contraseña ingresados.\n\n"
+            "Verifica que el email esté bien escrito y, si usas Gmail/Outlook/Yahoo, asegúrate de utilizar "
+            "una Contraseña de aplicación vigente.\n\n"
+            "Detalle técnico: %1").arg(rawResponse);
+    }
+
+    if (code == 535 && rawResponse.contains(QStringLiteral("5.7.139"), Qt::CaseInsensitive)) {
+        return QStringLiteral(
+            "Microsoft bloqueó el acceso básico o exige una Contraseña de aplicación en esta cuenta de Outlook/Hotmail.\n\n"
+            "Detalle técnico: %1").arg(rawResponse);
+    }
+
+    return QStringLiteral("El servidor SMTP respondió (%1): %2").arg(code).arg(rawResponse);
 }
 
 bool readSmtpResponse(QSslSocket &socket, int *statusCode, QString *fullResponse)
@@ -71,8 +99,7 @@ bool sendSmtpCommand(QSslSocket &socket,
 
     if (code != expectedCode) {
         if (errorMessage) {
-            *errorMessage = QStringLiteral("El servidor SMTP respondió (%1): %2")
-                                .arg(code).arg(response);
+            *errorMessage = friendlySmtpError(code, response);
         }
         return false;
     }
@@ -113,7 +140,6 @@ bool authenticateXOAuth2(QSslSocket &socket,
         return true;
     }
 
-    // Si Gmail responde 334 con detalle JSON en base64, enviamos línea vacía para leer el código 535 real
     if (code == 334) {
         socket.write("\r\n");
         socket.waitForBytesWritten(kSmtpTimeoutMs);
@@ -123,7 +149,7 @@ bool authenticateXOAuth2(QSslSocket &socket,
         if (errorMessage) {
             *errorMessage = QStringLiteral(
                 "Error de autenticación OAuth2 (%1): %2\n\n"
-                "Vuelve a pulsar \"Autorizar con Google (OAuth2)\" en el Panel de Control.")
+                "Vuelve a pulsar \"Autorizar con Google (OAuth2)\" en la configuración avanzada.")
                                 .arg(finalCode).arg(finalResp);
         }
         return false;
@@ -205,6 +231,9 @@ bool SmtpConfig::isComplete() const
     if (authMethod.compare(QStringLiteral("OAUTH2"), Qt::CaseInsensitive) == 0) {
         return !oauthClientId.trimmed().isEmpty() && hasOAuthSession();
     }
+    if (authMethod.compare(QStringLiteral("PASSWORD"), Qt::CaseInsensitive) == 0) {
+        return !password.isEmpty();
+    }
     return true;
 }
 
@@ -213,10 +242,32 @@ bool SmtpConfig::hasOAuthSession() const
     return !oauthRefreshToken.trimmed().isEmpty() || !oauthAccessToken.trimmed().isEmpty();
 }
 
+QString Mailer::normalizePasswordIfAppPassword(const QString &rawPassword, const QString &providerOrHost)
+{
+    const QString trimmed = rawPassword.trimmed();
+    // Si coincide con formato de clave de aplicación de 16 caracteres en 4 bloques (ej: "abcd efgh ijkl mnop")
+    static const QRegularExpression appPassRx(
+        QStringLiteral(R"(^[A-Za-z0-9]{4}\s+[A-Za-z0-9]{4}\s+[A-Za-z0-9]{4}\s+[A-Za-z0-9]{4}$)"));
+    if (appPassRx.match(trimmed).hasMatch()) {
+        QString compact = trimmed;
+        compact.remove(QRegularExpression(QStringLiteral(R"(\s+)")));
+        return compact;
+    }
+
+    // En Gmail (siempre son claves de aplicación sin espacios), limpiar espacios accidentales
+    if (providerOrHost.contains(QStringLiteral("GMAIL"), Qt::CaseInsensitive)) {
+        QString compact = trimmed;
+        compact.remove(QRegularExpression(QStringLiteral(R"(\s+)")));
+        return compact;
+    }
+
+    return rawPassword;
+}
+
 QString Mailer::encodeSecret(const QString &plainText)
 {
     if (plainText.isEmpty()) {
-        return QString();
+        return QStringLiteral("");
     }
     const QByteArray key = maskKey();
     QByteArray data = plainText.toUtf8();
@@ -243,6 +294,8 @@ SmtpConfig Mailer::loadConfig()
 {
     const Database &db = Database::instance();
     SmtpConfig cfg;
+    cfg.mode              = db.getSetting(QStringLiteral("smtp.mode"), QStringLiteral("BASIC"));
+    cfg.provider          = db.getSetting(QStringLiteral("smtp.provider"), QStringLiteral("GMAIL"));
     cfg.fromEmail         = db.getSetting(QStringLiteral("smtp.from_email"));
     cfg.fromName          = db.getSetting(QStringLiteral("smtp.from_name"), QStringLiteral("Global Manager"));
     cfg.host              = db.getSetting(QStringLiteral("smtp.host"));
@@ -261,8 +314,14 @@ SmtpConfig Mailer::loadConfig()
 
 bool Mailer::saveConfig(const SmtpConfig &config, QString *errorMessage)
 {
+    const QString cleanPass = normalizePasswordIfAppPassword(
+        config.password,
+        config.provider + QLatin1Char(' ') + config.host);
+
     Database &db = Database::instance();
     const bool ok =
+        db.setSetting(QStringLiteral("smtp.mode"),                config.mode.trimmed(), errorMessage) &&
+        db.setSetting(QStringLiteral("smtp.provider"),            config.provider.trimmed(), errorMessage) &&
         db.setSetting(QStringLiteral("smtp.from_email"),          config.fromEmail.trimmed(), errorMessage) &&
         db.setSetting(QStringLiteral("smtp.from_name"),           config.fromName.trimmed(), errorMessage) &&
         db.setSetting(QStringLiteral("smtp.host"),                config.host.trimmed(), errorMessage) &&
@@ -270,7 +329,7 @@ bool Mailer::saveConfig(const SmtpConfig &config, QString *errorMessage)
         db.setSetting(QStringLiteral("smtp.security"),            config.security.trimmed(), errorMessage) &&
         db.setSetting(QStringLiteral("smtp.auth_method"),         config.authMethod.trimmed(), errorMessage) &&
         db.setSetting(QStringLiteral("smtp.username"),            config.username.trimmed(), errorMessage) &&
-        db.setSetting(QStringLiteral("smtp.password"),            encodeSecret(config.password), errorMessage) &&
+        db.setSetting(QStringLiteral("smtp.password"),            encodeSecret(cleanPass), errorMessage) &&
         db.setSetting(QStringLiteral("smtp.oauth_client_id"),     config.oauthClientId.trimmed(), errorMessage) &&
         db.setSetting(QStringLiteral("smtp.oauth_client_secret"), encodeSecret(config.oauthClientSecret.trimmed()), errorMessage) &&
         db.setSetting(QStringLiteral("smtp.oauth_access_token"),  encodeSecret(config.oauthAccessToken), errorMessage) &&
@@ -299,9 +358,9 @@ bool Mailer::sendMailWithConfig(const SmtpConfig &config,
     if (!config.isComplete()) {
         if (errorMessage) {
             if (config.authMethod.compare(QStringLiteral("OAUTH2"), Qt::CaseInsensitive) == 0 && !config.hasOAuthSession()) {
-                *errorMessage = QStringLiteral("Aún no autorizaste la cuenta de Google con OAuth2 en el Panel de Control.");
+                *errorMessage = QStringLiteral("Aún no autorizaste la cuenta de Google con OAuth2 en la configuración avanzada.");
             } else {
-                *errorMessage = QStringLiteral("El servidor SMTP no está configurado completamente en el Panel de Control.");
+                *errorMessage = QStringLiteral("El correo corporativo no está configurado completamente en el Panel de Control.");
             }
         }
         return false;
@@ -314,9 +373,11 @@ bool Mailer::sendMailWithConfig(const SmtpConfig &config,
         return false;
     }
 
-    // Si es OAuth2, asegurar que tengamos un access_token vigente (renovándolo con refresh_token si caducó)
     QString activeAccessToken = config.oauthAccessToken;
     const QString authMethod = config.authMethod.toUpper();
+    const QString effectivePassword = normalizePasswordIfAppPassword(
+        config.password,
+        config.provider + QLatin1Char(' ') + config.host);
 
     if (authMethod == QStringLiteral("OAUTH2")) {
         const qint64 nowEpoch = QDateTime::currentSecsSinceEpoch();
@@ -330,7 +391,6 @@ bool Mailer::sendMailWithConfig(const SmtpConfig &config,
                 return false;
             }
             activeAccessToken = refreshed.accessToken;
-            // Persistir token renovado en SQLite
             Database::instance().setSetting(QStringLiteral("smtp.oauth_access_token"), encodeSecret(refreshed.accessToken));
             Database::instance().setSetting(QStringLiteral("smtp.oauth_token_expiry"), QString::number(refreshed.expiresAtEpoch));
         }
@@ -396,16 +456,13 @@ bool Mailer::sendMailWithConfig(const SmtpConfig &config,
         if (!authenticateXOAuth2(socket, authAccount, activeAccessToken, errorMessage)) {
             return false;
         }
-    } else if (authMethod == QStringLiteral("PASSWORD") && !config.username.trimmed().isEmpty()) {
-        if (!sendSmtpCommand(socket, "AUTH LOGIN", 334, errorMessage)) {
-            return false;
-        }
-        if (!sendSmtpCommand(socket, config.username.trimmed().toUtf8().toBase64(), 334, errorMessage)) {
-            return false;
-        }
-        if (!sendSmtpCommand(socket, config.password.toUtf8().toBase64(), 235, errorMessage)) {
-            return false;
-        }
+    } else if (authMethod == QStringLiteral("PASSWORD")) {
+        const QString authUser = config.username.trimmed().isEmpty()
+                                     ? config.fromEmail.trimmed()
+                                     : config.username.trimmed();
+        if (!sendSmtpCommand(socket, "AUTH LOGIN", 334, errorMessage)) return false;
+        if (!sendSmtpCommand(socket, authUser.toUtf8().toBase64(), 334, errorMessage)) return false;
+        if (!sendSmtpCommand(socket, effectivePassword.toUtf8().toBase64(), 235, errorMessage)) return false;
     }
 
     const QByteArray mailFrom = "MAIL FROM:<" + config.fromEmail.trimmed().toUtf8() + ">";
@@ -427,7 +484,7 @@ bool Mailer::sendMailWithConfig(const SmtpConfig &config,
 
     if (!readSmtpResponse(socket, &code, &response) || code != 250) {
         if (errorMessage) {
-            *errorMessage = QStringLiteral("El correo fue rechazado (%1): %2").arg(code).arg(response);
+            *errorMessage = friendlySmtpError(code, response);
         }
         return false;
     }

@@ -2,6 +2,7 @@
 #include "core/icons.h"
 #include "core/moduleBase.h"
 #include "core/session.h"
+#include "core/db.h"
 #include "modules/control_panel/control_panel.h"
 #include "modules/users/users.h"
 #include "loginDialog.h"
@@ -374,11 +375,15 @@ void MainWindow::onSessionStarted()
 {
     const UserSessionInfo &user = Session::instance().currentUser();
 
-    m_controlPanelBtn->setVisible(Session::instance().hasPermission(QStringLiteral("panel_control"), QStringLiteral("access")));
+    m_controlPanelBtn->setVisible(
+        Session::instance().hasPermission(QStringLiteral("panel_control"), QStringLiteral("access")));
 
+    const BootstrapData &boot = Database::instance().activeConfig();
     m_userStatusLabel->setText(
-        QStringLiteral("Usuario: %1%2")
-            .arg(user.email,
+        QStringLiteral("Puesto #%1 (%2)  ·  Usuario: %3%4")
+            .arg(boot.terminalNumber)
+            .arg(Database::instance().engineName(),
+                 user.email,
                  user.isAdmin ? QStringLiteral(" [Admin]") : QString()));
 
     QString welcomeHtml = QStringLiteral(
@@ -392,6 +397,16 @@ void MainWindow::onSessionStarted()
             "border:1px solid #FFECB5; border-radius:6px; margin-top:12px;'>"
             "<b>Seguridad obligatoria:</b> Debes cambiar tu contraseña inicial desde el "
             "<b>Panel de Control</b> antes de operar con normalidad.</p>");
+    }
+
+    if (user.isAdmin &&
+        Database::instance().getSetting(QStringLiteral("setup.remind_create_users")) == QStringLiteral("1")) {
+        welcomeHtml += QStringLiteral(
+            "<p style='background-color:#EEF4FA; color:#1E3A5F; padding:10px; "
+            "border:1px solid #D9E2EC; border-radius:6px; margin-top:12px;'>"
+            "<b>Primer paso en Red:</b> Ingresa al módulo <b>Usuarios</b> para dar de alta las cuentas "
+            "de operación diaria del equipo.</p>");
+        Database::instance().setSetting(QStringLiteral("setup.remind_create_users"), QStringLiteral("0"));
     }
 
     m_welcomeLabel->setText(welcomeHtml);
@@ -410,6 +425,7 @@ void MainWindow::onSessionStarted()
             }
         }
     }
+
     if (user.mustChangePassword && !user.isAdmin) {
         QTimer::singleShot(0, this, [this]() {
             if (!Session::instance().mustChangePassword()) {

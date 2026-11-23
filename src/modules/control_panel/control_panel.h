@@ -10,6 +10,8 @@ class QDateEdit;
 class QLabel;
 class QLineEdit;
 class QPushButton;
+class QRadioButton;
+struct SmtpConfig;
 class QSpinBox;
 class QTableWidget;
 class QTabWidget;
@@ -32,6 +34,9 @@ private slots:
     void onSaveCompany();
 
     // SMTP
+    void onSmtpModeToggled(bool basicSelected);
+    void onSmtpBasicProviderChanged(int index);
+    void onOpenProviderHelpUrl();
     void onSaveSmtp();
     void onTestSmtp();
     void onSmtpSecurityChanged(int index);
@@ -85,16 +90,30 @@ private:
     QLabel *m_companyLogoPreview = nullptr;
 
     // SMTP
+    QRadioButton *m_smtpModeBasicRadio = nullptr;
+    QRadioButton *m_smtpModeAdvancedRadio = nullptr;
     QLineEdit *m_smtpFromEmail = nullptr;
     QLineEdit *m_smtpFromName = nullptr;
+
+    // Controles Modo Básico
+    QWidget *m_smtpBasicContainer = nullptr;
+    QComboBox *m_smtpBasicProvider = nullptr;
+    QLineEdit *m_smtpBasicPass = nullptr;
+    QCheckBox *m_smtpBasicShowPass = nullptr;
+    QLabel *m_smtpBasicHelpLabel = nullptr;
+    QLabel *m_smtpBasicSummaryLabel = nullptr;
+    QPushButton *m_smtpProviderHelpBtn = nullptr;
+
+    // Controles Modo Avanzado
+    QWidget *m_smtpAdvancedContainer = nullptr;
     QLineEdit *m_smtpHost = nullptr;
     QSpinBox *m_smtpPort = nullptr;
     QComboBox *m_smtpSecurity = nullptr;
+    QComboBox *m_smtpAuthMethod = nullptr;
+    QWidget *m_smtpPasswordGroup = nullptr;
     QLineEdit *m_smtpUser = nullptr;
     QLineEdit *m_smtpPass = nullptr;
     QCheckBox *m_smtpShowPass = nullptr;
-    QComboBox *m_smtpAuthMethod = nullptr;
-    QWidget *m_smtpPasswordGroup = nullptr;
     QWidget *m_smtpOAuthGroup = nullptr;
     QLineEdit *m_oauthClientId = nullptr;
     QLineEdit *m_oauthClientSecret = nullptr;
@@ -103,6 +122,7 @@ private:
     QString m_cachedAccessToken;
     QString m_cachedRefreshToken;
     qint64 m_cachedTokenExpiry = 0;
+    SmtpConfig collectSmtpConfigFromUi() const;
 
     // Impresoras
     QComboBox *m_mainPrinterCombo = nullptr;

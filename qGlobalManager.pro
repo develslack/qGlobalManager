@@ -84,6 +84,8 @@ HEADERS += \
     src/core/session.h \
     src/core/theme.h \
     src/core/userCredentials.h \
+    src/core/bootstrapConfig.h \
+    src/core/tableExporter.h \
     src/core/oauth2Google.h
 
 SOURCES += \
@@ -95,16 +97,20 @@ SOURCES += \
     src/core/session.cpp \
     src/core/theme.cpp \
     src/core/userCredentials.cpp \
+    src/core/bootstrapConfig.cpp \
+    src/core/tableExporter.cpp \
     src/core/oauth2Google.cpp
 
 HEADERS += \
     src/ui/changePasswordDialog.h \
     src/ui/loginDialog.h \
+    src/ui/setupWizard.h \
     src/ui/mainWindow.h
 
 SOURCES += \
     src/ui/changePasswordDialog.cpp \
     src/ui/loginDialog.cpp \
+    src/ui/setupWizard.cpp \
     src/ui/mainWindow.cpp
 
 # 4. Módulos funcionales (src/modules/<nombre_modulo>/<nombre_modulo>.h/.cpp)

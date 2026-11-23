@@ -43,6 +43,9 @@
 #include <QTableWidget>
 #include <QVBoxLayout>
 #include <QVariant>
+#include <QDesktopServices>
+#include <QRadioButton>
+#include <QUrl>
 
 namespace {
 
@@ -53,6 +56,70 @@ QScrollArea *wrapInScroll(QWidget *content, QWidget *parent)
     scroll->setFrameShape(QFrame::NoFrame);
     scroll->setWidget(content);
     return scroll;
+}
+
+
+struct MailProviderPreset
+{
+    const char *id;
+    const char *label;
+    const char *host;
+    int port;
+    const char *security;
+    const char *helpText;
+    const char *helpUrl;
+};
+
+const MailProviderPreset kMailPresets[] = {
+    {
+        "GMAIL",
+        "Gmail (Google)",
+        "smtp.gmail.com",
+        465,
+        "SSL",
+        "Para enviar correos desde Gmail necesitas una <b>Contraseña de aplicación</b> de 16 letras "
+        "(con Verificación en 2 pasos activada). Puedes pegarla con o sin espacios: el sistema la ajusta solo.",
+        "https://myaccount.google.com/apppasswords"
+    },
+    {
+        "OUTLOOK",
+        "Outlook / Hotmail / Live (Microsoft)",
+        "smtp-mail.outlook.com",
+        587,
+        "STARTTLS",
+        "Para Outlook o Hotmail, ingresa tu cuenta Microsoft y una <b>Contraseña de aplicación</b> "
+        "generada desde las opciones de seguridad avanzada de tu cuenta.",
+        "https://account.live.com/proofs/AppPassword"
+    },
+    {
+        "YAHOO",
+        "Yahoo Mail",
+        "smtp.mail.yahoo.com",
+        465,
+        "SSL",
+        "Yahoo exige generar una <b>Contraseña de aplicación</b> desde Seguridad de la cuenta "
+        "para permitir envíos desde programas externos.",
+        "https://login.yahoo.com/myaccount/security/"
+    },
+    {
+        "ICLOUD",
+        "iCloud Mail (Apple)",
+        "smtp.mail.me.com",
+        587,
+        "STARTTLS",
+        "En iCloud debes generar una <b>Contraseña específica para la app</b> desde tu Apple ID.",
+        "https://appleid.apple.com/account/manage"
+    }
+};
+
+const MailProviderPreset *findPresetById(const QString &providerId)
+{
+    for (const auto &preset : kMailPresets) {
+        if (providerId.compare(QString::fromLatin1(preset.id), Qt::CaseInsensitive) == 0) {
+            return &preset;
+        }
+    }
+    return &kMailPresets[0];
 }
 
 } // namespace
@@ -205,22 +272,106 @@ QWidget *PanelControlModule::buildSmtpTab()
     layout->setContentsMargins(12, 12, 12, 12);
     layout->setSpacing(14);
 
-    // 1. Datos del servidor y seguridad
-    auto *serverGroup = new QGroupBox(QStringLiteral("Cuenta Institucional y Servidor SMTP"), page);
-    auto *form = new QFormLayout(serverGroup);
-    form->setRowWrapPolicy(QFormLayout::WrapLongRows);
+    // =========================================================================
+    // 1. Selector de modo + Datos comunes del remitente
+    // =========================================================================
+    auto *commonGroup = new QGroupBox(QStringLiteral("Cuenta de Correo Institucional"), page);
+    auto *commonLayout = new QVBoxLayout(commonGroup);
+    commonLayout->setSpacing(10);
 
-    m_smtpFromEmail = new QLineEdit(serverGroup);
-    m_smtpFromEmail->setPlaceholderText(QStringLiteral("notificaciones@gmail.com o correo@tuempresa.com"));
+    auto *modeRow = new QHBoxLayout();
+    m_smtpModeBasicRadio = new QRadioButton(QStringLiteral("Configuración Básica (Guiada: Gmail, Hotmail, Yahoo...)"), commonGroup);
+    m_smtpModeAdvancedRadio = new QRadioButton(QStringLiteral("Configuración Avanzada (Servidor propio / TI)"), commonGroup);
+    m_smtpModeBasicRadio->setChecked(true);
 
-    m_smtpFromName = new QLineEdit(serverGroup);
-    m_smtpFromName->setPlaceholderText(QStringLiteral("Nombre visible (ej: Global Manager - Mi Comercio)"));
+    modeRow->addWidget(m_smtpModeBasicRadio);
+    modeRow->addSpacing(16);
+    modeRow->addWidget(m_smtpModeAdvancedRadio);
+    modeRow->addStretch();
+    commonLayout->addLayout(modeRow);
+
+    auto *commonForm = new QFormLayout();
+    commonForm->setRowWrapPolicy(QFormLayout::WrapLongRows);
+
+    m_smtpFromEmail = new QLineEdit(commonGroup);
+    m_smtpFromEmail->setPlaceholderText(QStringLiteral("tuempresa@gmail.com o notificaciones@tudominio.com"));
+
+    m_smtpFromName = new QLineEdit(commonGroup);
+    m_smtpFromName->setPlaceholderText(QStringLiteral("Nombre visible en los correos (ej: Global Manager - Mi Comercio)"));
+
+    commonForm->addRow(QStringLiteral("Email Institucional (Remitente) *:"), m_smtpFromEmail);
+    commonForm->addRow(QStringLiteral("Nombre del Remitente:"), m_smtpFromName);
+    commonLayout->addLayout(commonForm);
+    layout->addWidget(commonGroup);
+
+    // =========================================================================
+    // 2. Bloque MODO BÁSICO (Guiado para usuarios utilitarios)
+    // =========================================================================
+    m_smtpBasicContainer = new QGroupBox(QStringLiteral("Asistente Rápido de Correo"), page);
+    auto *basicLayout = new QVBoxLayout(m_smtpBasicContainer);
+    basicLayout->setSpacing(10);
+
+    auto *basicForm = new QFormLayout();
+    basicForm->setRowWrapPolicy(QFormLayout::WrapLongRows);
+
+    m_smtpBasicProvider = new QComboBox(m_smtpBasicContainer);
+    for (const auto &preset : kMailPresets) {
+        m_smtpBasicProvider->addItem(QString::fromUtf8(preset.label), QString::fromLatin1(preset.id));
+    }
+
+    auto *basicPassRow = new QHBoxLayout();
+    m_smtpBasicPass = new QLineEdit(m_smtpBasicContainer);
+    m_smtpBasicPass->setEchoMode(QLineEdit::Password);
+    m_smtpBasicPass->setPlaceholderText(QStringLiteral("Pega aquí tu Contraseña de aplicación (16 letras)"));
+
+    m_smtpBasicShowPass = new QCheckBox(QStringLiteral("Mostrar"), m_smtpBasicContainer);
+    basicPassRow->addWidget(m_smtpBasicPass, 1);
+    basicPassRow->addWidget(m_smtpBasicShowPass);
+
+    basicForm->addRow(QStringLiteral("Servicio de correo *:"), m_smtpBasicProvider);
+    basicForm->addRow(QStringLiteral("Contraseña de aplicación *:"), basicPassRow);
+    basicLayout->addLayout(basicForm);
+
+    m_smtpBasicHelpLabel = new QLabel(m_smtpBasicContainer);
+    m_smtpBasicHelpLabel->setWordWrap(true);
+    m_smtpBasicHelpLabel->setStyleSheet(
+        QStringLiteral("background-color: #EEF4FA; color: #1E3A5F; border: 1px solid #D9E2EC; "
+                       "padding: 10px; border-radius: 6px;"));
+    basicLayout->addWidget(m_smtpBasicHelpLabel);
+
+    auto *helpActionRow = new QHBoxLayout();
+    m_smtpProviderHelpBtn = new QPushButton(QStringLiteral("Abrir página de Claves de Aplicación"), m_smtpBasicContainer);
+    m_smtpProviderHelpBtn->setIcon(Icons::get(Icons::Name::Key, QColor(QStringLiteral("#1E3A5F")), 15));
+    m_smtpProviderHelpBtn->setProperty("secondary", true);
+
+    m_smtpBasicSummaryLabel = new QLabel(m_smtpBasicContainer);
+    m_smtpBasicSummaryLabel->setWordWrap(true);
+    m_smtpBasicSummaryLabel->setStyleSheet(QStringLiteral("color: #52606D; font-size: 9pt;"));
+
+    helpActionRow->addWidget(m_smtpProviderHelpBtn);
+    helpActionRow->addSpacing(10);
+    helpActionRow->addWidget(m_smtpBasicSummaryLabel, 1);
+    basicLayout->addLayout(helpActionRow);
+
+    layout->addWidget(m_smtpBasicContainer);
+
+    // =========================================================================
+    // 3. Bloque MODO AVANZADO (Servidor propio / parámetros completos)
+    // =========================================================================
+    m_smtpAdvancedContainer = new QWidget(page);
+    auto *advLayout = new QVBoxLayout(m_smtpAdvancedContainer);
+    advLayout->setContentsMargins(0, 0, 0, 0);
+    advLayout->setSpacing(12);
+
+    auto *serverGroup = new QGroupBox(QStringLiteral("Parámetros del Servidor SMTP Propio"), m_smtpAdvancedContainer);
+    auto *advForm = new QFormLayout(serverGroup);
+    advForm->setRowWrapPolicy(QFormLayout::WrapLongRows);
 
     m_smtpHost = new QLineEdit(serverGroup);
-    m_smtpHost->setPlaceholderText(QStringLiteral("Ej: smtp.gmail.com"));
+    m_smtpHost->setPlaceholderText(QStringLiteral("Ej: mail.tuempresa.com o smtp.gmail.com"));
 
     m_smtpSecurity = new QComboBox(serverGroup);
-    m_smtpSecurity->addItem(QStringLiteral("SSL/TLS (Puerto 465 - Recomendado Gmail)"), QStringLiteral("SSL"));
+    m_smtpSecurity->addItem(QStringLiteral("SSL/TLS (Puerto 465)"), QStringLiteral("SSL"));
     m_smtpSecurity->addItem(QStringLiteral("STARTTLS (Puerto 587)"), QStringLiteral("STARTTLS"));
     m_smtpSecurity->addItem(QStringLiteral("Sin cifrado (Puerto 25)"), QStringLiteral("NONE"));
 
@@ -230,49 +381,39 @@ QWidget *PanelControlModule::buildSmtpTab()
     m_smtpPort->setMaximumWidth(120);
 
     m_smtpAuthMethod = new QComboBox(serverGroup);
-    m_smtpAuthMethod->addItem(QStringLiteral("OAuth2 (Google / Gmail - Validación explícita)"), QStringLiteral("OAUTH2"));
     m_smtpAuthMethod->addItem(QStringLiteral("Usuario y Contraseña / Clave de App"), QStringLiteral("PASSWORD"));
-    m_smtpAuthMethod->addItem(QStringLiteral("Sin autenticación"), QStringLiteral("NONE"));
+    m_smtpAuthMethod->addItem(QStringLiteral("OAuth2 (Google Cloud personalizado)"), QStringLiteral("OAUTH2"));
+    m_smtpAuthMethod->addItem(QStringLiteral("Sin autenticación (Relay local)"), QStringLiteral("NONE"));
 
-    form->addRow(QStringLiteral("Email Institucional (Remitente) *:"), m_smtpFromEmail);
-    form->addRow(QStringLiteral("Nombre del Remitente:"), m_smtpFromName);
-    form->addRow(QStringLiteral("Servidor SMTP (Host) *:"), m_smtpHost);
-    form->addRow(QStringLiteral("Seguridad:"), m_smtpSecurity);
-    form->addRow(QStringLiteral("Puerto *:"), m_smtpPort);
-    form->addRow(QStringLiteral("Método de autenticación:"), m_smtpAuthMethod);
-    layout->addWidget(serverGroup);
+    advForm->addRow(QStringLiteral("Servidor SMTP (Host) *:"), m_smtpHost);
+    advForm->addRow(QStringLiteral("Seguridad:"), m_smtpSecurity);
+    advForm->addRow(QStringLiteral("Puerto *:"), m_smtpPort);
+    advForm->addRow(QStringLiteral("Método de autenticación:"), m_smtpAuthMethod);
+    advLayout->addWidget(serverGroup);
 
-    // 2. Bloque de Usuario / Contraseña (Clave de aplicación)
-    m_smtpPasswordGroup = new QGroupBox(QStringLiteral("Credenciales SMTP (Usuario / Clave de Aplicación)"), page);
+    // Sub-bloque Usuario / Contraseña
+    m_smtpPasswordGroup = new QGroupBox(QStringLiteral("Credenciales de Acceso SMTP"), m_smtpAdvancedContainer);
     auto *passForm = new QFormLayout(m_smtpPasswordGroup);
     passForm->setRowWrapPolicy(QFormLayout::WrapLongRows);
 
     m_smtpUser = new QLineEdit(m_smtpPasswordGroup);
-    m_smtpUser->setPlaceholderText(QStringLiteral("Usuario SMTP (usualmente el mismo email institucional)"));
+    m_smtpUser->setPlaceholderText(QStringLiteral("Si se deja vacío se usa el Email Institucional"));
 
     auto *passRow = new QHBoxLayout();
     m_smtpPass = new QLineEdit(m_smtpPasswordGroup);
     m_smtpPass->setEchoMode(QLineEdit::Password);
-    m_smtpPass->setPlaceholderText(QStringLiteral("Contraseña SMTP o Contraseña de aplicación de 16 caracteres"));
+    m_smtpPass->setPlaceholderText(QStringLiteral("Contraseña de la casilla o Clave de aplicación"));
 
     m_smtpShowPass = new QCheckBox(QStringLiteral("Mostrar"), m_smtpPasswordGroup);
     passRow->addWidget(m_smtpPass, 1);
     passRow->addWidget(m_smtpShowPass);
 
-    auto *passNote = new QLabel(
-        QStringLiteral("En Gmail, si usas este método debes ingresar una \"Contraseña de aplicación\" "
-                       "(16 caracteres sin espacios), no tu clave habitual de Google."),
-        m_smtpPasswordGroup);
-    passNote->setWordWrap(true);
-    passNote->setStyleSheet(QStringLiteral("color: #52606D; font-size: 9pt;"));
-
     passForm->addRow(QStringLiteral("Usuario SMTP:"), m_smtpUser);
-    passForm->addRow(QStringLiteral("Contraseña:"), passRow);
-    passForm->addRow(QString(), passNote);
-    layout->addWidget(m_smtpPasswordGroup);
+    passForm->addRow(QStringLiteral("Contraseña SMTP:"), passRow);
+    advLayout->addWidget(m_smtpPasswordGroup);
 
-    // 3. Bloque de OAuth2 para Gmail
-    m_smtpOAuthGroup = new QGroupBox(QStringLiteral("Vinculación OAuth2 con Google / Gmail"), page);
+    // Sub-bloque OAuth2 (solo si elige OAuth2 en modo avanzado)
+    m_smtpOAuthGroup = new QGroupBox(QStringLiteral("Vinculación OAuth2 (Google Cloud)"), m_smtpAdvancedContainer);
     auto *oauthLayout = new QVBoxLayout(m_smtpOAuthGroup);
     oauthLayout->setSpacing(10);
 
@@ -280,18 +421,18 @@ QWidget *PanelControlModule::buildSmtpTab()
     oauthForm->setRowWrapPolicy(QFormLayout::WrapLongRows);
 
     m_oauthClientId = new QLineEdit(m_smtpOAuthGroup);
-    m_oauthClientId->setPlaceholderText(QStringLiteral("xxxx.apps.googleusercontent.com (App de escritorio en Google Cloud)"));
+    m_oauthClientId->setPlaceholderText(QStringLiteral("xxxx.apps.googleusercontent.com"));
 
     m_oauthClientSecret = new QLineEdit(m_smtpOAuthGroup);
     m_oauthClientSecret->setEchoMode(QLineEdit::Password);
-    m_oauthClientSecret->setPlaceholderText(QStringLiteral("Client Secret de Google Cloud Console"));
+    m_oauthClientSecret->setPlaceholderText(QStringLiteral("Client Secret"));
 
     m_oauthStatusLabel = new QLabel(QStringLiteral("Pendiente de autorización en Google."), m_smtpOAuthGroup);
     m_oauthStatusLabel->setWordWrap(true);
 
     oauthForm->addRow(QStringLiteral("Client ID *:"), m_oauthClientId);
     oauthForm->addRow(QStringLiteral("Client Secret:"), m_oauthClientSecret);
-    oauthForm->addRow(QStringLiteral("Estado de vinculación:"), m_oauthStatusLabel);
+    oauthForm->addRow(QStringLiteral("Estado:"), m_oauthStatusLabel);
     oauthLayout->addLayout(oauthForm);
 
     auto *oauthBtnRow = new QHBoxLayout();
@@ -306,11 +447,15 @@ QWidget *PanelControlModule::buildSmtpTab()
     oauthBtnRow->addWidget(revokeGoogleBtn);
     oauthBtnRow->addStretch();
     oauthLayout->addLayout(oauthBtnRow);
-    layout->addWidget(m_smtpOAuthGroup);
+    advLayout->addWidget(m_smtpOAuthGroup);
 
-    // 4. Acciones generales
+    layout->addWidget(m_smtpAdvancedContainer);
+
+    // =========================================================================
+    // 4. Acciones globales (Guardar + Probar envío)
+    // =========================================================================
     auto *btnRow = new QHBoxLayout();
-    auto *saveBtn = new QPushButton(QStringLiteral("Guardar configuración SMTP"), page);
+    auto *saveBtn = new QPushButton(QStringLiteral("Guardar configuración de correo"), page);
     saveBtn->setIcon(Icons::get(Icons::Name::Save, QColor(QStringLiteral("#FFFFFF")), 16));
 
     auto *testBtn = new QPushButton(QStringLiteral("Probar envío de correo"), page);
@@ -323,6 +468,14 @@ QWidget *PanelControlModule::buildSmtpTab()
     layout->addLayout(btnRow);
     layout->addStretch();
 
+    // Conexiones
+    connect(m_smtpModeBasicRadio, &QRadioButton::toggled, this, &PanelControlModule::onSmtpModeToggled);
+    connect(m_smtpBasicProvider, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &PanelControlModule::onSmtpBasicProviderChanged);
+    connect(m_smtpProviderHelpBtn, &QPushButton::clicked, this, &PanelControlModule::onOpenProviderHelpUrl);
+    connect(m_smtpBasicShowPass, &QCheckBox::toggled, this, [this](bool checked) {
+        m_smtpBasicPass->setEchoMode(checked ? QLineEdit::Normal : QLineEdit::Password);
+    });
     connect(m_smtpShowPass, &QCheckBox::toggled, this, [this](bool checked) {
         m_smtpPass->setEchoMode(checked ? QLineEdit::Normal : QLineEdit::Password);
     });
@@ -334,6 +487,9 @@ QWidget *PanelControlModule::buildSmtpTab()
     connect(revokeGoogleBtn, &QPushButton::clicked, this, &PanelControlModule::onClearGoogleOAuth);
     connect(saveBtn, &QPushButton::clicked, this, &PanelControlModule::onSaveSmtp);
     connect(testBtn, &QPushButton::clicked, this, &PanelControlModule::onTestSmtp);
+
+    onSmtpBasicProviderChanged(0);
+    onSmtpModeToggled(true);
     return page;
 }
 
@@ -649,8 +805,15 @@ void PanelControlModule::loadAllSettings()
     const SmtpConfig smtp = Mailer::loadConfig();
     m_smtpFromEmail->setText(smtp.fromEmail);
     m_smtpFromName->setText(smtp.fromName);
-    m_smtpHost->setText(smtp.host);
 
+    // Cargar modo básico
+    const int provIdx = m_smtpBasicProvider->findData(smtp.provider.toUpper());
+    m_smtpBasicProvider->setCurrentIndex(provIdx >= 0 ? provIdx : 0);
+    m_smtpBasicPass->setText(smtp.password);
+    onSmtpBasicProviderChanged(m_smtpBasicProvider->currentIndex());
+
+    // Cargar modo avanzado
+    m_smtpHost->setText(smtp.host);
     m_smtpSecurity->blockSignals(true);
     const int secIdx = m_smtpSecurity->findData(smtp.security.toUpper());
     m_smtpSecurity->setCurrentIndex(secIdx >= 0 ? secIdx : 0);
@@ -658,8 +821,7 @@ void PanelControlModule::loadAllSettings()
     m_smtpPort->setValue(smtp.port > 0 ? smtp.port : 465);
 
     const int authIdx = m_smtpAuthMethod->findData(smtp.authMethod.toUpper());
-    m_smtpAuthMethod->setCurrentIndex(authIdx >= 0 ? authIdx : 1);
-
+    m_smtpAuthMethod->setCurrentIndex(authIdx >= 0 ? authIdx : 0);
     m_smtpUser->setText(smtp.username);
     m_smtpPass->setText(smtp.password);
 
@@ -670,12 +832,23 @@ void PanelControlModule::loadAllSettings()
     m_cachedTokenExpiry = smtp.oauthTokenExpiry;
 
     if (smtp.hasOAuthSession()) {
-        m_oauthStatusLabel->setText(QStringLiteral("Cuenta de Google vinculada correctamente (lista para enviar)."));
+        m_oauthStatusLabel->setText(QStringLiteral("Cuenta de Google vinculada correctamente."));
         m_oauthStatusLabel->setStyleSheet(QStringLiteral("color: #2E7D32; font-weight: 600;"));
     } else {
-        m_oauthStatusLabel->setText(QStringLiteral("Pendiente de autorización explícita en Google."));
+        m_oauthStatusLabel->setText(QStringLiteral("Pendiente de autorización en Google."));
         m_oauthStatusLabel->setStyleSheet(QStringLiteral("color: #B7791F; font-weight: 600;"));
     }
+
+    const bool useBasic = (smtp.mode.compare(QStringLiteral("ADVANCED"), Qt::CaseInsensitive) != 0);
+    m_smtpModeBasicRadio->blockSignals(true);
+    m_smtpModeAdvancedRadio->blockSignals(true);
+    m_smtpModeBasicRadio->setChecked(useBasic);
+    m_smtpModeAdvancedRadio->setChecked(!useBasic);
+    m_smtpModeBasicRadio->blockSignals(false);
+    m_smtpModeAdvancedRadio->blockSignals(false);
+
+    m_smtpBasicContainer->setVisible(useBasic);
+    m_smtpAdvancedContainer->setVisible(!useBasic);
     onSmtpAuthMethodChanged(m_smtpAuthMethod->currentIndex());
 
     // Impresoras
@@ -823,83 +996,7 @@ void PanelControlModule::onSaveCompany()
                              QStringLiteral("Los datos de la empresa se actualizaron correctamente."));
 }
 
-/*
-void PanelControlModule::onSaveSmtp()
-{
-    SmtpConfig cfg;
-    cfg.fromEmail = m_smtpFromEmail->text().trimmed();
-    cfg.fromName  = m_smtpFromName->text().trimmed();
-    cfg.host      = m_smtpHost->text().trimmed();
-    cfg.port      = m_smtpPort->value();
-    cfg.security  = m_smtpSecurity->currentText();
-    cfg.username  = m_smtpUser->text().trimmed();
-    cfg.password  = m_smtpPass->text();
-
-    QString err;
-    if (!Mailer::saveConfig(cfg, &err)) {
-        QMessageBox::warning(this, QStringLiteral("Error SMTP"),
-                             QStringLiteral("No se pudo guardar la configuración SMTP:\n%1").arg(err));
-        return;
-    }
-
-    Database::instance().logAudit(Session::instance().currentUser().email, moduleId(),
-                                  QStringLiteral("smtp_save"), QStringLiteral("Host: %1:%2").arg(cfg.host).arg(cfg.port));
-    QMessageBox::information(this, QStringLiteral("SMTP guardado"),
-                             QStringLiteral("La configuración del correo corporativo fue guardada."));
-}
-*/
-
-/*
-void PanelControlModule::onTestSmtp()
-{
-    SmtpConfig cfg;
-    cfg.fromEmail = m_smtpFromEmail->text().trimmed();
-    cfg.fromName  = m_smtpFromName->text().trimmed();
-    cfg.host      = m_smtpHost->text().trimmed();
-    cfg.port      = m_smtpPort->value();
-    cfg.security  = m_smtpSecurity->currentText();
-    cfg.username  = m_smtpUser->text().trimmed();
-    cfg.password  = m_smtpPass->text();
-
-    if (!cfg.isComplete()) {
-        QMessageBox::warning(this, QStringLiteral("Datos incompletos"),
-                             QStringLiteral("Completa al menos el Email Institucional, Host SMTP y Puerto antes de probar."));
-        return;
-    }
-
-    bool okInput = false;
-    const QString dest = QInputDialog::getText(
-        this,
-        QStringLiteral("Probar correo corporativo"),
-        QStringLiteral("Ingresa el correo de destino para recibir el mensaje de prueba:"),
-        QLineEdit::Normal,
-        cfg.fromEmail,
-        &okInput).trimmed();
-
-    if (!okInput || dest.isEmpty()) {
-        return;
-    }
-
-    QApplication::setOverrideCursor(Qt::WaitCursor);
-    QString err;
-    const bool sent = Mailer::sendMailWithConfig(
-        cfg,
-        dest,
-        QStringLiteral("Global Manager - Prueba de correo SMTP"),
-        QStringLiteral("Este es un correo de verificación enviado desde el Panel de Control de Global Manager.\n"
-                       "La configuración SMTP funciona correctamente."),
-        QStringList(),
-        &err);
-    QApplication::restoreOverrideCursor();
-
-    if (sent) {
-        QMessageBox::information(this, QStringLiteral("Envío exitoso"),
-                                 QStringLiteral("El correo de prueba fue enviado correctamente a %1.").arg(dest));
-    } else {
-        QMessageBox::critical(this, QStringLiteral("Falló el envío SMTP"), err);
-    }
-}
-*/
+// ============================================================================================================================================================= //
 
 void PanelControlModule::onRefreshPrinters()
 {
@@ -937,6 +1034,10 @@ void PanelControlModule::onRefreshPrinters()
     }
 }
 
+
+// ============================================================================================================================================================= //
+
+
 void PanelControlModule::onSavePrinters()
 {
     Database &db = Database::instance();
@@ -959,6 +1060,10 @@ void PanelControlModule::onSavePrinters()
     QMessageBox::information(this, QStringLiteral("Impresoras guardadas"),
                              QStringLiteral("La configuración de impresoras se guardó correctamente."));
 }
+
+
+// ============================================================================================================================================================= //
+
 
 void PanelControlModule::onPrintTestPage()
 {
@@ -1010,6 +1115,10 @@ void PanelControlModule::onPrintTestPage()
     QMessageBox::information(this, QStringLiteral("Prueba enviada"),
                              QStringLiteral("Se envió la página de prueba a \"%1\".").arg(printer.printerName()));
 }
+
+
+// ============================================================================================================================================================= //
+
 
 void PanelControlModule::onChangeAdminPassword()
 {
@@ -1098,6 +1207,10 @@ void PanelControlModule::onChangeAdminPassword()
                                             "Ya puedes operar en todos los módulos."));
 }
 
+
+// ============================================================================================================================================================= //
+
+
 void PanelControlModule::onSaveSecurityTimers()
 {
     Database &db = Database::instance();
@@ -1122,6 +1235,10 @@ void PanelControlModule::onSaveSecurityTimers()
                              QStringLiteral("Los tiempos de cierre automático por inactividad ya están vigentes."));
 }
 
+
+// ============================================================================================================================================================= //
+
+
 void PanelControlModule::onSaveLicenseToken()
 {
     QString err;
@@ -1144,6 +1261,10 @@ void PanelControlModule::onSaveLicenseToken()
     QMessageBox::information(this, QStringLiteral("Token habilitado"), lic.statusText);
 }
 
+
+// ============================================================================================================================================================= //
+
+
 void PanelControlModule::onGenerateDevToken()
 {
 #ifdef APP_DEBUG_BUILD
@@ -1159,6 +1280,10 @@ void PanelControlModule::onGenerateDevToken()
                        "Pulsa 'Validar y guardar token' para aplicarlo."));
 #endif
 }
+
+
+// ============================================================================================================================================================= //
+
 
 void PanelControlModule::onCreateBackup()
 {
@@ -1208,6 +1333,10 @@ void PanelControlModule::onCreateBackup()
                              QStringLiteral("Copia de seguridad guardada correctamente en:\n%1").arg(destPath));
 }
 
+
+// ============================================================================================================================================================= //
+
+
 void PanelControlModule::onRefreshAuditLog()
 {
     m_auditTable->setRowCount(0);
@@ -1229,6 +1358,10 @@ void PanelControlModule::onRefreshAuditLog()
     }
 }
 
+
+// ============================================================================================================================================================= //
+
+
 void PanelControlModule::onSmtpSecurityChanged(int index)
 {
     const QString sec = m_smtpSecurity->itemData(index).toString();
@@ -1240,6 +1373,10 @@ void PanelControlModule::onSmtpSecurityChanged(int index)
         m_smtpPort->setValue(25);
     }
 }
+
+
+// ============================================================================================================================================================= //
+
 
 void PanelControlModule::onSmtpAuthMethodChanged(int index)
 {
@@ -1256,6 +1393,11 @@ void PanelControlModule::onSmtpAuthMethodChanged(int index)
         }
     }
 }
+
+
+
+// ============================================================================================================================================================= //
+
 
 void PanelControlModule::onAuthorizeGoogleOAuth()
 {
@@ -1290,6 +1432,10 @@ void PanelControlModule::onAuthorizeGoogleOAuth()
     onSaveSmtp();
 }
 
+
+// ============================================================================================================================================================= //
+
+
 void PanelControlModule::onClearGoogleOAuth()
 {
     m_cachedAccessToken.clear();
@@ -1300,60 +1446,156 @@ void PanelControlModule::onClearGoogleOAuth()
     m_oauthStatusLabel->setStyleSheet(QStringLiteral("color: #B7791F; font-weight: 600;"));
 }
 
-void PanelControlModule::onSaveSmtp()
+
+// ============================================================================================================================================================= //
+
+
+void PanelControlModule::onSmtpModeToggled(bool basicSelected)
+{
+    if (!basicSelected) {
+        // Sincronizar datos desde Básico → Avanzado para no reescribir nada
+        const MailProviderPreset *preset = findPresetById(m_smtpBasicProvider->currentData().toString());
+        if (m_smtpHost->text().trimmed().isEmpty()) {
+            m_smtpHost->setText(QString::fromLatin1(preset->host));
+            const int secIdx = m_smtpSecurity->findData(QString::fromLatin1(preset->security));
+            if (secIdx >= 0) m_smtpSecurity->setCurrentIndex(secIdx);
+            m_smtpPort->setValue(preset->port);
+        }
+        if (m_smtpUser->text().trimmed().isEmpty()) {
+            m_smtpUser->setText(m_smtpFromEmail->text().trimmed());
+        }
+        if (!m_smtpBasicPass->text().isEmpty()) {
+            m_smtpPass->setText(m_smtpBasicPass->text());
+        }
+    } else {
+        // Sincronizar contraseña desde Avanzado → Básico
+        if (!m_smtpPass->text().isEmpty()) {
+            m_smtpBasicPass->setText(m_smtpPass->text());
+        }
+    }
+
+    m_smtpBasicContainer->setVisible(basicSelected);
+    m_smtpAdvancedContainer->setVisible(!basicSelected);
+}
+
+
+// ============================================================================================================================================================= //
+
+
+void PanelControlModule::onSmtpBasicProviderChanged(int index)
+{
+    const QString providerId = m_smtpBasicProvider->itemData(index).toString();
+    const MailProviderPreset *preset = findPresetById(providerId);
+
+    m_smtpBasicHelpLabel->setText(QString::fromUtf8(preset->helpText));
+    m_smtpBasicSummaryLabel->setText(
+        QStringLiteral("Configuración automática: %1 · Puerto %2 (%3)")
+            .arg(QString::fromLatin1(preset->host))
+            .arg(preset->port)
+            .arg(QString::fromLatin1(preset->security) == QStringLiteral("SSL")
+                     ? QStringLiteral("SSL/TLS")
+                     : QString::fromLatin1(preset->security)));
+}
+
+
+// ============================================================================================================================================================= //
+
+
+void PanelControlModule::onOpenProviderHelpUrl()
+{
+    const QString providerId = m_smtpBasicProvider->currentData().toString();
+    const MailProviderPreset *preset = findPresetById(providerId);
+    QDesktopServices::openUrl(QUrl(QString::fromLatin1(preset->helpUrl)));
+}
+
+
+// ============================================================================================================================================================= //
+
+
+SmtpConfig PanelControlModule::collectSmtpConfigFromUi() const
 {
     SmtpConfig cfg;
-    cfg.fromEmail         = m_smtpFromEmail->text().trimmed();
-    cfg.fromName          = m_smtpFromName->text().trimmed();
-    cfg.host              = m_smtpHost->text().trimmed();
-    cfg.port              = m_smtpPort->value();
-    cfg.security          = m_smtpSecurity->currentData().toString();
-    cfg.authMethod        = m_smtpAuthMethod->currentData().toString();
-    cfg.username          = m_smtpUser->text().trimmed();
-    cfg.password          = m_smtpPass->text();
-    cfg.oauthClientId     = m_oauthClientId->text().trimmed();
-    cfg.oauthClientSecret = m_oauthClientSecret->text().trimmed();
-    cfg.oauthAccessToken  = m_cachedAccessToken;
-    cfg.oauthRefreshToken = m_cachedRefreshToken;
-    cfg.oauthTokenExpiry  = m_cachedTokenExpiry;
+    cfg.fromEmail = m_smtpFromEmail->text().trimmed();
+    cfg.fromName  = m_smtpFromName->text().trimmed();
+
+    if (m_smtpModeBasicRadio->isChecked()) {
+        const QString providerId = m_smtpBasicProvider->currentData().toString();
+        const MailProviderPreset *preset = findPresetById(providerId);
+
+        cfg.mode       = QStringLiteral("BASIC");
+        cfg.provider   = providerId;
+        cfg.host       = QString::fromLatin1(preset->host);
+        cfg.port       = preset->port;
+        cfg.security   = QString::fromLatin1(preset->security);
+        cfg.authMethod = QStringLiteral("PASSWORD");
+        cfg.username   = cfg.fromEmail;
+        cfg.password   = Mailer::normalizePasswordIfAppPassword(m_smtpBasicPass->text(), providerId);
+    } else {
+        cfg.mode              = QStringLiteral("ADVANCED");
+        cfg.provider          = QStringLiteral("CUSTOM");
+        cfg.host              = m_smtpHost->text().trimmed();
+        cfg.port              = m_smtpPort->value();
+        cfg.security          = m_smtpSecurity->currentData().toString();
+        cfg.authMethod        = m_smtpAuthMethod->currentData().toString();
+        cfg.username          = m_smtpUser->text().trimmed();
+        cfg.password          = Mailer::normalizePasswordIfAppPassword(m_smtpPass->text(), cfg.host);
+        cfg.oauthClientId     = m_oauthClientId->text().trimmed();
+        cfg.oauthClientSecret = m_oauthClientSecret->text().trimmed();
+        cfg.oauthAccessToken  = m_cachedAccessToken;
+        cfg.oauthRefreshToken = m_cachedRefreshToken;
+        cfg.oauthTokenExpiry  = m_cachedTokenExpiry;
+    }
+
+    return cfg;
+}
+
+
+// ============================================================================================================================================================= //
+
+
+void PanelControlModule::onSaveSmtp()
+{
+    const SmtpConfig cfg = collectSmtpConfigFromUi();
+
+    if (cfg.fromEmail.isEmpty()) {
+        QMessageBox::warning(this, QStringLiteral("Dato requerido"),
+                             QStringLiteral("Ingresa el Email Institucional desde donde se enviarán los correos."));
+        m_smtpFromEmail->setFocus();
+        return;
+    }
 
     QString err;
     if (!Mailer::saveConfig(cfg, &err)) {
         QMessageBox::warning(this, QStringLiteral("Error SMTP"),
-                             QStringLiteral("No se pudo guardar la configuración SMTP:\n%1").arg(err));
+                             QStringLiteral("No se pudo guardar la configuración de correo:\n%1").arg(err));
         return;
     }
+
+    // Reflejar clave normalizada (sin espacios accidentales) en pantalla
+    m_smtpBasicPass->setText(cfg.password);
+    m_smtpPass->setText(cfg.password);
 
     Database::instance().logAudit(
         Session::instance().currentUser().email, moduleId(),
         QStringLiteral("smtp_save"),
-        QStringLiteral("Host: %1:%2 | Seguridad: %3 | Auth: %4")
-            .arg(cfg.host).arg(cfg.port).arg(cfg.security, cfg.authMethod));
+        QStringLiteral("Modo: %1 | Proveedor: %2 | Host: %3:%4")
+            .arg(cfg.mode, cfg.provider, cfg.host).arg(cfg.port));
 
-    QMessageBox::information(this, QStringLiteral("SMTP guardado"),
-                             QStringLiteral("La configuración del correo corporativo fue guardada."));
+    QMessageBox::information(this, QStringLiteral("Correo guardado"),
+                             QStringLiteral("La configuración del correo corporativo fue guardada correctamente."));
 }
+
+
+// ============================================================================================================================================================= //
+
 
 void PanelControlModule::onTestSmtp()
 {
-    SmtpConfig cfg;
-    cfg.fromEmail         = m_smtpFromEmail->text().trimmed();
-    cfg.fromName          = m_smtpFromName->text().trimmed();
-    cfg.host              = m_smtpHost->text().trimmed();
-    cfg.port              = m_smtpPort->value();
-    cfg.security          = m_smtpSecurity->currentData().toString();
-    cfg.authMethod        = m_smtpAuthMethod->currentData().toString();
-    cfg.username          = m_smtpUser->text().trimmed();
-    cfg.password          = m_smtpPass->text();
-    cfg.oauthClientId     = m_oauthClientId->text().trimmed();
-    cfg.oauthClientSecret = m_oauthClientSecret->text().trimmed();
-    cfg.oauthAccessToken  = m_cachedAccessToken;
-    cfg.oauthRefreshToken = m_cachedRefreshToken;
-    cfg.oauthTokenExpiry  = m_cachedTokenExpiry;
+    const SmtpConfig cfg = collectSmtpConfigFromUi();
 
     if (!cfg.isComplete()) {
         QMessageBox::warning(this, QStringLiteral("Datos incompletos"),
-                             QStringLiteral("Completa los datos del servidor SMTP (y autoriza con Google si usas OAuth2) antes de probar."));
+                             QStringLiteral("Completa tu email y contraseña (o los datos del servidor en modo avanzado) antes de probar."));
         return;
     }
 
@@ -1377,7 +1619,7 @@ void PanelControlModule::onTestSmtp()
         dest,
         QStringLiteral("Global Manager - Prueba de correo SMTP"),
         QStringLiteral("Este es un correo de verificación enviado desde el Panel de Control de Global Manager.\n"
-                       "La configuración SMTP funciona correctamente."),
+                       "La configuración del motor de correo funciona correctamente."),
         QStringList(),
         &err);
     QApplication::restoreOverrideCursor();
@@ -1386,6 +1628,9 @@ void PanelControlModule::onTestSmtp()
         QMessageBox::information(this, QStringLiteral("Envío exitoso"),
                                  QStringLiteral("El correo de prueba fue enviado correctamente a %1.").arg(dest));
     } else {
-        QMessageBox::critical(this, QStringLiteral("Falló el envío SMTP"), err);
+        QMessageBox::critical(this, QStringLiteral("Falló el envío de correo"), err);
     }
 }
+
+
+// ============================================================================================================================================================= //
