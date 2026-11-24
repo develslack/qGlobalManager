@@ -6,6 +6,8 @@
 #include "modules/control_panel/control_panel.h"
 #include "modules/users/users.h"
 #include "modules/clients/clients.h"
+#include "modules/catalog/catalog.h"
+#include "modules/cashbox/cashbox.h"
 #include "loginDialog.h"
 #include "changePasswordDialog.h"
 #include "core/elevationManager.h"
@@ -271,12 +273,14 @@ void MainWindow::registerModules()
     // registerModule("panel_control", "Panel de Control", [](QWidget *p) { return new PanelControlModule(p); }, false);
     // registerModule("usuarios", "Usuarios", [](QWidget *p) { return new UsuariosModule(p); });
 
+    // SE INICIALA EL MODULO CONTROL PANEL
     registerModule(
     QStringLiteral("panel_control"),
     QStringLiteral("Panel de Control"),
     [](QWidget *p) { return new PanelControlModule(p); },
     false);
 
+    // SE INICIALA EL MODULO USERS
     registerModule(
     QStringLiteral("usuarios"),
     QStringLiteral("Usuarios"),
@@ -286,10 +290,24 @@ void MainWindow::registerModules()
         .getSetting(QStringLiteral("company.business_type"), QStringLiteral("Comercio"))
         .contains(QStringLiteral("Consultorio"), Qt::CaseInsensitive);
 
+
+    // SE INICIALA EL MODULO CLIENTS
     registerModule(
         QStringLiteral("clientes"),
         isClinic ? QStringLiteral("Pacientes") : QStringLiteral("Clientes"),
         [](QWidget *p) { return new ClientesModule(p); });
+
+    // SE INICIALA EL MODULO CATALOG
+    registerModule(
+        QStringLiteral("catalog"),
+        isClinic ? QStringLiteral("Prestaciones y Servicios") : QStringLiteral("Artículos y Servicios"),
+        [](QWidget *p) { return new CatalogModule(p); });
+
+    // SE INICIALA EL MODULO CASHBOX
+    registerModule(
+        QStringLiteral("cashbox"),
+        QStringLiteral("Caja y Fondos"),
+        [](QWidget *p) { return new CashboxModule(p); });
 
 
 }

@@ -1324,7 +1324,95 @@ bool Database::createSchema(QString *errorMessage)
             "  updated_at %5,"
             "  FOREIGN KEY(document_type_id) REFERENCES document_types(id),"
             "  FOREIGN KEY(iva_condition_id) REFERENCES iva_conditions(id)"
-            ");").arg(pk, strS, strD, strL, ts)
+            ");").arg(pk, strS, strD, strL, ts),
+
+            // 13. Módulo troncal: Catálogo de Artículos, Servicios y Prestaciones
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS catalog_items ("
+            "  id %1,"
+            "  sku %3,"
+            "  name %2,"
+            "  item_type %3,"
+            "  category %3,"
+            "  unit %3,"
+            "  cost_price DOUBLE NOT NULL DEFAULT 0,"
+            "  sale_price DOUBLE NOT NULL DEFAULT 0,"
+            "  pricing_mode %3,"
+            "  ext_source_id INTEGER NULL,"
+            "  ext_item_key %3,"
+            "  foreign_price DOUBLE NOT NULL DEFAULT 0,"
+            "  vat_rate DOUBLE NOT NULL DEFAULT 21.0,"
+            "  stock_current DOUBLE NOT NULL DEFAULT 0,"
+            "  stock_min DOUBLE NOT NULL DEFAULT 0,"
+            "  notes %4,"
+            "  is_active INTEGER NOT NULL DEFAULT 1,"
+            "  is_deprecated INTEGER NOT NULL DEFAULT 0,"
+            "  deprecated_at %3,"
+            "  deprecated_by %3,"
+            "  deprecation_note %3,"
+            "  created_at %5,"
+            "  updated_at %5,"
+            "  FOREIGN KEY(ext_source_id) REFERENCES external_sources(id)"
+            ");").arg(pk, strS, strD, strL, ts),
+
+        // 14. Trazabilidad de movimientos de stock
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS stock_movements ("
+            "  id %1,"
+            "  item_id INTEGER NOT NULL,"
+            "  movement_type %3,"
+            "  quantity DOUBLE NOT NULL DEFAULT 0,"
+            "  previous_stock DOUBLE NOT NULL DEFAULT 0,"
+            "  new_stock DOUBLE NOT NULL DEFAULT 0,"
+            "  reason %3,"
+            "  user_email %3,"
+            "  created_at %5,"
+            "  FOREIGN KEY(item_id) REFERENCES catalog_items(id)"
+            ");").arg(pk, strD, ts),
+
+            // 15. Módulo troncal: Turnos / Sesiones de Caja (Apertura y Arqueo)
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS cash_sessions ("
+            "  id %1,"
+            "  terminal_number INTEGER NOT NULL DEFAULT 1,"
+            "  workstation %3,"
+            "  opened_by_email %3,"
+            "  opened_by_name %3,"
+            "  opened_at %5,"
+            "  opening_amount DOUBLE NOT NULL DEFAULT 0,"
+            "  closed_by_email %3,"
+            "  closed_by_name %3,"
+            "  closed_at %3,"
+            "  expected_cash DOUBLE NOT NULL DEFAULT 0,"
+            "  counted_cash DOUBLE NOT NULL DEFAULT 0,"
+            "  difference_amount DOUBLE NOT NULL DEFAULT 0,"
+            "  status %3,"
+            "  notes %4"
+            ");").arg(pk, strD, strL, ts),
+
+        // 16. Movimientos de fondos ligados a un turno de caja
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS cash_movements ("
+            "  id %1,"
+            "  session_id INTEGER NOT NULL,"
+            "  movement_type %3,"
+            "  category %3,"
+            "  payment_method_id INTEGER NULL,"
+            "  payment_method_name %3,"
+            "  amount DOUBLE NOT NULL DEFAULT 0,"
+            "  description %3,"
+            "  reference_code %3,"
+            "  client_id INTEGER NULL,"
+            "  user_email %3,"
+            "  is_voided INTEGER NOT NULL DEFAULT 0,"
+            "  voided_by %3,"
+            "  voided_at %3,"
+            "  void_reason %3,"
+            "  created_at %5,"
+            "  FOREIGN KEY(session_id) REFERENCES cash_sessions(id),"
+            "  FOREIGN KEY(payment_method_id) REFERENCES payment_methods(id),"
+            "  FOREIGN KEY(client_id) REFERENCES clients(id)"
+            ");").arg(pk, strD, ts)
 
     };
 
@@ -1446,6 +1534,17 @@ bool Database::seedInitialData(QString *errorMessage)
         {"clientes",      "edit",              "Editar datos de Clientes / Pacientes"},
         {"clientes",      "deprecate",         "Deprecar o reactivar Clientes / Pacientes"},
         {"clientes",      "report",            "Generar y enviar informes de Clientes / Pacientes"},
+        {"catalog",       "access",            "Ver catálogo de Artículos, Servicios y Prestaciones"},
+        {"catalog",       "create",            "Dar de alta Artículos, Servicios o Prestaciones"},
+        {"catalog",       "edit",              "Editar precios y datos del catálogo"},
+        {"catalog",       "adjust_stock",      "Registrar ingresos, egresos y ajustes de stock"},
+        {"catalog",       "deprecate",         "Deprecar o reactivar ítems del catálogo"},
+        {"catalog",       "report",            "Generar listas de precios e informes de stock"},
+        {"cashbox",       "access",            "Ver estado y movimientos de Caja"},
+        {"cashbox",       "open_close",        "Realizar apertura y cierre/arqueo de Caja"},
+        {"cashbox",       "movement",          "Registrar ingresos y egresos de fondos"},
+        {"cashbox",       "void",              "Anular movimientos de Caja registrados"},
+        {"cashbox",       "report",            "Generar e imprimir informes de Caja y Arqueo"},
     };
 
     query.prepare(QStringLiteral(
@@ -1529,6 +1628,72 @@ bool Database::seedInitialData(QString *errorMessage)
             cpQ.bindValue(QStringLiteral(":rname"), QStringLiteral("Operador"));
             cpQ.bindValue(QStringLiteral(":act"), act);
             cpQ.exec();
+        }
+    }
+
+    // 2e. Permisos por defecto del módulo Catálogo para Supervisor y Operador
+    const QStringList catalogSupPerms = {
+        QStringLiteral("access"),
+        QStringLiteral("create"),
+        QStringLiteral("edit"),
+        QStringLiteral("adjust_stock"),
+        QStringLiteral("deprecate"),
+        QStringLiteral("report")
+    };
+    const QStringList catalogOpPerms = {
+        QStringLiteral("access"),
+        QStringLiteral("report")
+    };
+    {
+        QSqlQuery catQ(connection());
+        catQ.prepare(QStringLiteral(
+            "%1 INTO role_permissions (role_id, permission_id) "
+            "SELECT r.id, p.id FROM roles r, permissions p "
+            "WHERE r.name = :rname AND p.module_id = 'catalog' AND p.action = :act;").arg(insertIgnore));
+
+        for (const QString &act : catalogSupPerms) {
+            catQ.bindValue(QStringLiteral(":rname"), QStringLiteral("Responsable / Supervisor"));
+            catQ.bindValue(QStringLiteral(":act"), act);
+            catQ.exec();
+        }
+        for (const QString &act : catalogOpPerms) {
+            catQ.bindValue(QStringLiteral(":rname"), QStringLiteral("Operador"));
+            catQ.bindValue(QStringLiteral(":act"), act);
+            catQ.exec();
+        }
+    }
+
+
+    // 2f. Permisos por defecto del módulo Caja para Supervisor y Operador
+    const QStringList cashSupPerms = {
+        QStringLiteral("access"),
+        QStringLiteral("open_close"),
+        QStringLiteral("movement"),
+        QStringLiteral("void"),
+        QStringLiteral("report")
+    };
+    const QStringList cashOpPerms = {
+        QStringLiteral("access"),
+        QStringLiteral("open_close"),
+        QStringLiteral("movement"),
+        QStringLiteral("report")
+    };
+    {
+        QSqlQuery cashQ(connection());
+        cashQ.prepare(QStringLiteral(
+            "%1 INTO role_permissions (role_id, permission_id) "
+            "SELECT r.id, p.id FROM roles r, permissions p "
+            "WHERE r.name = :rname AND p.module_id = 'cashbox' AND p.action = :act;").arg(insertIgnore));
+
+        for (const QString &act : cashSupPerms) {
+            cashQ.bindValue(QStringLiteral(":rname"), QStringLiteral("Responsable / Supervisor"));
+            cashQ.bindValue(QStringLiteral(":act"), act);
+            cashQ.exec();
+        }
+        for (const QString &act : cashOpPerms) {
+            cashQ.bindValue(QStringLiteral(":rname"), QStringLiteral("Operador"));
+            cashQ.bindValue(QStringLiteral(":act"), act);
+            cashQ.exec();
         }
     }
 
