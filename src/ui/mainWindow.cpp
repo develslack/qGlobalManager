@@ -369,7 +369,9 @@ bool MainWindow::openModuleById(const QString &moduleId)
 
     m_stack->setCurrentWidget(loaded.container);
     m_currentSectionLabel->setText(QStringLiteral("<b>%1</b>").arg(targetEntry->title.toHtmlEscaped()));
+
     loaded.module->onActivated();
+    loaded.module->refreshExternalSourcesBar();
 
     if (m_compactMode) {
         m_navPanel->hide();

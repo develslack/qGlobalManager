@@ -1,8 +1,10 @@
 #include "moduleBase.h"
 #include "session.h"
+#include "externalSourceManager.h"
 
 #include <QFrame>
 #include <QHBoxLayout>
+#include <QPushButton>
 #include <QIcon>
 #include <QLabel>
 #include <QMessageBox>
@@ -68,6 +70,21 @@ void ModuleBase::initBanner(const QString &title,
     m_bannerTitle->setText(title);
     m_bannerSubtitle->setText(subtitle);
 
+    m_externalSourcesBar = new QFrame(this);
+    m_externalSourcesBar->setStyleSheet(
+        QStringLiteral("QFrame { background-color: #EEF4FA; border: 1px solid #D9E2EC; border-radius: 6px; }"));
+    auto *extBarLayout = new QHBoxLayout(m_externalSourcesBar);
+    extBarLayout->setContentsMargins(10, 5, 10, 5);
+    extBarLayout->setSpacing(8);
+
+    m_externalSourcesLabel = new QLabel(m_externalSourcesBar);
+    m_externalSourcesLabel->setWordWrap(true);
+    m_externalSourcesLabel->setStyleSheet(QStringLiteral("color: #1E3A5F; font-size: 9pt; border: none; background: transparent;"));
+    extBarLayout->addWidget(m_externalSourcesLabel, 1);
+
+    m_externalSourcesBar->hide();
+    m_bodyLayout->addWidget(m_externalSourcesBar);
+
     const QPixmap pix = QIcon(iconResource).pixmap(44, 44);
     if (!pix.isNull()) {
         m_bannerIcon->setPixmap(pix);
@@ -107,4 +124,51 @@ bool ModuleBase::requirePermission(const QString &action, const QString &taskDes
                        "Si necesitas acceso, solicítalo al administrador del sistema.")
             .arg(Session::instance().currentUser().email, taskText, moduleTitle()));
     return false;
+}
+
+
+// ============================================================================================================================================= //
+
+
+void ModuleBase::refreshExternalSourcesBar()
+{
+    if (!m_externalSourcesBar || !m_externalSourcesLabel) {
+        return;
+    }
+
+    const QVector<ExternalSourceDef> linked = ExternalSourceManager::loadSourcesForModule(moduleId());
+    if (linked.isEmpty()) {
+        m_externalSourcesBar->hide();
+        return;
+    }
+
+    QStringList chunks;
+    for (const ExternalSourceDef &src : linked) {
+        const QVector<ExternalSourceItem> items = ExternalSourceManager::loadItems(src.id);
+        if (items.isEmpty()) continue;
+
+        QStringList previewPairs;
+        const int limit = qMin(5, items.size());
+        for (int i = 0; i < limit; ++i) {
+            const ExternalSourceItem &it = items.at(i);
+            const QString val = it.hasNumericValue
+                                    ? QString::number(it.valueNum, 'f', 2)
+                                    : it.valueText;
+            previewPairs.append(val.isEmpty()
+                                    ? it.itemLabel.toHtmlEscaped()
+                                    : QStringLiteral("%1: <b>%2</b>").arg(it.itemLabel.toHtmlEscaped(), val.toHtmlEscaped()));
+        }
+        if (items.size() > limit) {
+            previewPairs.append(QStringLiteral("(+%1 más)").arg(items.size() - limit));
+        }
+        chunks.append(QStringLiteral("<b>%1:</b> %2").arg(src.name.toHtmlEscaped(), previewPairs.join(QStringLiteral(" · "))));
+    }
+
+    if (chunks.isEmpty()) {
+        m_externalSourcesBar->hide();
+        return;
+    }
+
+    m_externalSourcesLabel->setText(chunks.join(QStringLiteral(" &nbsp;|&nbsp; ")));
+    m_externalSourcesBar->show();
 }

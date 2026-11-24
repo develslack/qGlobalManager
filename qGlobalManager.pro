@@ -87,6 +87,7 @@ HEADERS += \
     src/core/bootstrapConfig.h \
     src/core/tableExporter.h \
     src/core/elevationManager.h \
+    src/core/externalSourceManager.h \
     src/core/oauth2Google.h
 
 SOURCES += \
@@ -101,6 +102,7 @@ SOURCES += \
     src/core/bootstrapConfig.cpp \
     src/core/tableExporter.cpp \
     src/core/elevationManager.cpp \
+    src/core/externalSourceManager.cpp \
     src/core/oauth2Google.cpp
 
 HEADERS += \

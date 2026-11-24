@@ -1,11 +1,22 @@
-#ifndef MODULES_PANEL_CONTROL_SUPPORTTABLESWIDGET_H
-#define MODULES_PANEL_CONTROL_SUPPORTTABLESWIDGET_H
+#ifndef MODULES_CONTROL_PANEL_SUPPORTTABLESWIDGET_H
+#define MODULES_CONTROL_PANEL_SUPPORTTABLESWIDGET_H
 
+#include "core/externalSourceManager.h"
+
+#include <QMap>
+#include <QString>
+#include <QStringList>
+#include <QVector>
 #include <QWidget>
 
-class QComboBox;
+class QCheckBox;
+class QLabel;
 class QLineEdit;
+class QListWidget;
 class QPushButton;
+class QResizeEvent;
+class QSplitter;
+class QStackedWidget;
 class QTableWidget;
 
 class SupportTablesWidget : public QWidget
@@ -16,42 +27,99 @@ public:
     explicit SupportTablesWidget(QWidget *parent = nullptr);
     void reloadAll();
 
-private slots:
-    // Roles
-    void onSaveRole();
-    void onResetRoleForm();
-    void onEditRole(int roleId, const QString &name, const QString &description);
-    void onConfigureRolePermissions(int roleId, const QString &roleName, bool isSystem);
-    void onToggleRoleActive(int roleId, const QString &roleName, bool currentlyActive);
+protected:
+    void resizeEvent(QResizeEvent *event) override;
 
-    // Catálogos generales (IVA, Documentos, Medios de pago)
-    void onCatalogChanged(int index);
-    void onSaveCatalogItem();
-    void onResetCatalogForm();
-    void onEditCatalogItem(int itemId, const QString &code, const QString &name);
-    void onToggleCatalogItemActive(int itemId, bool currentlyActive);
+private slots:
+    void onFilterTablesChanged(const QString &text);
+    void onListItemSelected(int row);
+    void onShowTableInfoModal();
+    void onSaveRecord();
+    void onResetForm();
+    void onEditRecord(int recordId, const QString &code, const QString &name, const QString &description);
+    void onDeprecateRecord(int recordId, const QString &displayName, bool isSystem);
+    void onReactivateRecord(int recordId, const QString &displayName);
+    void onConfigureRolePermissions(int roleId, const QString &roleName, bool isSystem);
+
+    // Fuentes externas agnósticas
+    void onAddExternalSource();
+    void onEditCurrentExternalSource();
+    void onSyncCurrentExternalSource();
+    void onToggleCurrentExternalSourceActive();
 
 private:
+    struct SupportTableDef
+    {
+        QString tableName;
+        QString displayName;
+        QString subtitle;
+        QString scopeType;        // "Transversal" o "Aislada"
+        QStringList servedModules;
+        QString originType;       // "Manual" o "Mixto (Semillas + Manual)"
+        bool hasCode = false;
+        bool hasDescription = false;
+        bool hasIsSystem = false;
+        bool isRolesTable = false;
+        QString codePlaceholder;
+        QString namePlaceholder;
+        QString descPlaceholder;
+    };
+
+    struct CatalogListEntry
+    {
+        bool isExternal = false;
+        int indexOrSourceId = -1;
+    };
+
+    void registerSupportTables();
     void setupUi();
-    void loadRoles();
-    void loadCatalogItems();
+    void populateTablesList(const QString &filter = QString());
+    void loadCurrentStandardTableRecords();
+    void loadCurrentExternalSourceItems();
+    const SupportTableDef *currentStandardDef() const;
 
-    // Controles de Roles
-    int m_editingRoleId = -1;
-    QLineEdit *m_roleNameEdit = nullptr;
-    QLineEdit *m_roleDescEdit = nullptr;
-    QPushButton *m_roleSaveBtn = nullptr;
-    QPushButton *m_roleCancelBtn = nullptr;
-    QTableWidget *m_rolesTable = nullptr;
+    QString quoteIdent(const QString &ident) const;
+    int countStandardRecords(const QString &tableName, int *deprecatedCountOut = nullptr) const;
+    QStringList introspectReferencingTables(const QString &tableName) const;
 
-    // Controles de Catálogos soporte
-    int m_editingCatalogId = -1;
-    QComboBox *m_catalogSelector = nullptr;
-    QLineEdit *m_catalogCodeEdit = nullptr;
-    QLineEdit *m_catalogNameEdit = nullptr;
-    QPushButton *m_catalogSaveBtn = nullptr;
-    QPushButton *m_catalogCancelBtn = nullptr;
-    QTableWidget *m_catalogTable = nullptr;
+    QVector<SupportTableDef> m_tables;
+    QVector<ExternalSourceDef> m_externalSources;
+    QVector<CatalogListEntry> m_visibleEntries;
+
+    bool m_selectedIsExternal = false;
+    int m_selectedIndexOrSourceId = -1;
+    int m_editingRecordId = -1;
+
+    // Layout responsivo
+    QSplitter *m_splitter = nullptr;
+
+    // Panel izquierdo: listado maestro
+    QLineEdit *m_tableFilterEdit = nullptr;
+    QListWidget *m_tablesList = nullptr;
+
+    // Panel derecho: 0 = Vacío, 1 = Tabla Soporte Estándar, 2 = Fuente Externa Dinámica
+    QStackedWidget *m_rightStack = nullptr;
+
+    // Encabezado común + controles tabla estándar
+    QLabel *m_stdTitleLabel = nullptr;
+    QLabel *m_stdSubtitleLabel = nullptr;
+    QLabel *m_codeLabel = nullptr;
+    QLineEdit *m_codeEdit = nullptr;
+    QLabel *m_nameLabel = nullptr;
+    QLineEdit *m_nameEdit = nullptr;
+    QLabel *m_descLabel = nullptr;
+    QLineEdit *m_descEdit = nullptr;
+    QPushButton *m_saveBtn = nullptr;
+    QPushButton *m_cancelBtn = nullptr;
+    QCheckBox *m_showDeprecatedCheck = nullptr;
+    QLabel *m_recordsSummaryLabel = nullptr;
+    QTableWidget *m_recordsTable = nullptr;
+
+    // Controles fuente externa dinámica
+    QLabel *m_extTitleLabel = nullptr;
+    QLabel *m_extMetaLabel = nullptr;
+    QPushButton *m_extToggleActiveBtn = nullptr;
+    QTableWidget *m_extItemsTable = nullptr;
 };
 
-#endif // MODULES_PANEL_CONTROL_SUPPORTTABLESWIDGET_H
+#endif // MODULES_CONTROL_PANEL_SUPPORTTABLESWIDGET_H

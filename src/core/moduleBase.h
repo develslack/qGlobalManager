@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QWidget>
+#include <QFrame>
 
 class QLabel;
 class QVBoxLayout;
@@ -19,6 +20,8 @@ public:
     virtual QString moduleTitle() const = 0;
     virtual void onActivated() {}
 
+    void refreshExternalSourcesBar();
+
 protected:
     void initBanner(const QString &title,
                     const QString &subtitle,
@@ -27,11 +30,16 @@ protected:
 
     bool requirePermission(const QString &action, const QString &taskDescription = QString());
 
+
 private:
     QLabel *m_bannerIcon = nullptr;
     QLabel *m_bannerTitle = nullptr;
     QLabel *m_bannerSubtitle = nullptr;
     QVBoxLayout *m_bodyLayout = nullptr;
+
+    // EXTERNAL SOURCES
+    QFrame *m_externalSourcesBar = nullptr;
+    QLabel *m_externalSourcesLabel = nullptr;
 };
 
 #endif // CORE_MODULEBASE_H

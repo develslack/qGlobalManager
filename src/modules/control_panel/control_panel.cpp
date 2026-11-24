@@ -828,9 +828,9 @@ void PanelControlModule::onActivated()
 {
     loadAllSettings();
     m_supportTablesWidget->reloadAll();
-    //loadAuditLog();
     applyTabPermissions();
     updateFirstLoginAlert();
+
 }
 
 void PanelControlModule::loadAllSettings()
@@ -840,7 +840,7 @@ void PanelControlModule::loadAllSettings()
     // 1. Condiciones de IVA desde tabla soporte
     m_companyIvaCombo->clear();
     QSqlQuery ivaQ(db.connection());
-    if (ivaQ.exec(QStringLiteral("SELECT name FROM iva_conditions WHERE is_active = 1 ORDER BY id;"))) {
+    if (ivaQ.exec(QStringLiteral("SELECT name FROM iva_conditions WHERE is_active = 1 AND is_deprecated = 0 ORDER BY id;"))) {
         while (ivaQ.next()) {
             m_companyIvaCombo->addItem(ivaQ.value(0).toString());
         }
@@ -852,16 +852,23 @@ void PanelControlModule::loadAllSettings()
     m_companyCuit->setText(db.getSetting(QStringLiteral("company.cuit")));
     m_companyBusinessType->setCurrentText(db.getSetting(QStringLiteral("company.business_type"), QStringLiteral("Comercio")));
     m_companySubRubro->setText(db.getSetting(QStringLiteral("company.sub_rubro")));
+
     const QString savedIva = db.getSetting(QStringLiteral("company.iva_condition"));
+
     if (!savedIva.isEmpty()) {
+        if (m_companyIvaCombo->findText(savedIva) < 0) {
+            m_companyIvaCombo->addItem(savedIva + QStringLiteral(" [Deprecado]"));
+        }
         m_companyIvaCombo->setCurrentText(savedIva);
     }
+
     m_companyAddress->setText(db.getSetting(QStringLiteral("company.address")));
     m_companyPhone->setText(db.getSetting(QStringLiteral("company.phone")));
     m_companyCurrency->setText(db.getSetting(QStringLiteral("regional.currency_symbol"), QStringLiteral("$")));
 
     const QString logoPath = db.getSetting(QStringLiteral("company.logo_path"));
     m_companyLogoPath->setText(logoPath);
+
     if (!logoPath.isEmpty() && QFile::exists(logoPath)) {
         const QPixmap pix(logoPath);
         if (!pix.isNull()) {
