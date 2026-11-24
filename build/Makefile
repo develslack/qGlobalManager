@@ -65,12 +65,14 @@ SOURCES       = ../src/main.cpp \
 		../src/core/tableExporter.cpp \
 		../src/core/elevationManager.cpp \
 		../src/core/externalSourceManager.cpp \
+		../src/core/reportviewerdialog.cpp \
 		../src/core/oauth2Google.cpp \
 		../src/ui/changePasswordDialog.cpp \
 		../src/ui/loginDialog.cpp \
 		../src/ui/setupWizard.cpp \
 		../src/ui/elevationDialog.cpp \
 		../src/ui/mainWindow.cpp \
+		../src/modules/clients/clients.cpp \
 		../src/modules/control_panel/control_panel.cpp \
 		../src/modules/control_panel/supportTablesWidget.cpp \
 		../src/modules/control_panel/externalSourceDialog.cpp \
@@ -79,11 +81,13 @@ SOURCES       = ../src/main.cpp \
 		.tmp/moc/moc_moduleBase.cpp \
 		.tmp/moc/moc_session.cpp \
 		.tmp/moc/moc_elevationManager.cpp \
+		.tmp/moc/moc_reportviewerdialog.cpp \
 		.tmp/moc/moc_changePasswordDialog.cpp \
 		.tmp/moc/moc_loginDialog.cpp \
 		.tmp/moc/moc_setupWizard.cpp \
 		.tmp/moc/moc_elevationDialog.cpp \
 		.tmp/moc/moc_mainWindow.cpp \
+		.tmp/moc/moc_clients.cpp \
 		.tmp/moc/moc_control_panel.cpp \
 		.tmp/moc/moc_supportTablesWidget.cpp \
 		.tmp/moc/moc_externalSourceDialog.cpp \
@@ -102,12 +106,14 @@ OBJECTS       = .tmp/obj/main.o \
 		.tmp/obj/tableExporter.o \
 		.tmp/obj/elevationManager.o \
 		.tmp/obj/externalSourceManager.o \
+		.tmp/obj/reportviewerdialog.o \
 		.tmp/obj/oauth2Google.o \
 		.tmp/obj/changePasswordDialog.o \
 		.tmp/obj/loginDialog.o \
 		.tmp/obj/setupWizard.o \
 		.tmp/obj/elevationDialog.o \
 		.tmp/obj/mainWindow.o \
+		.tmp/obj/clients.o \
 		.tmp/obj/control_panel.o \
 		.tmp/obj/supportTablesWidget.o \
 		.tmp/obj/externalSourceDialog.o \
@@ -117,11 +123,13 @@ OBJECTS       = .tmp/obj/main.o \
 		.tmp/obj/moc_moduleBase.o \
 		.tmp/obj/moc_session.o \
 		.tmp/obj/moc_elevationManager.o \
+		.tmp/obj/moc_reportviewerdialog.o \
 		.tmp/obj/moc_changePasswordDialog.o \
 		.tmp/obj/moc_loginDialog.o \
 		.tmp/obj/moc_setupWizard.o \
 		.tmp/obj/moc_elevationDialog.o \
 		.tmp/obj/moc_mainWindow.o \
+		.tmp/obj/moc_clients.o \
 		.tmp/obj/moc_control_panel.o \
 		.tmp/obj/moc_supportTablesWidget.o \
 		.tmp/obj/moc_externalSourceDialog.o \
@@ -474,6 +482,7 @@ DIST          = ../build.sh \
 		/usr/lib64/qt5/mkspecs/features/exclusive_builds.prf \
 		/usr/lib64/qt5/mkspecs/features/toolchain.prf \
 		/usr/lib64/qt5/mkspecs/features/default_pre.prf \
+		../../src/modules/clients/clients.pri \
 		../../src/modules/control_panel/control_panel.pri \
 		../../src/modules/users/users.pri \
 		/usr/lib64/qt5/mkspecs/features/resolve_config.prf \
@@ -504,12 +513,15 @@ DIST          = ../build.sh \
 		../src/core/tableExporter.h \
 		../src/core/elevationManager.h \
 		../src/core/externalSourceManager.h \
+		../src/core/reportpayload.h \
+		../src/core/reportviewerdialog.h \
 		../src/core/oauth2Google.h \
 		../src/ui/changePasswordDialog.h \
 		../src/ui/loginDialog.h \
 		../src/ui/setupWizard.h \
 		../src/ui/elevationDialog.h \
 		../src/ui/mainWindow.h \
+		../src/modules/clients/clients.h \
 		../src/modules/control_panel/control_panel.h \
 		../src/modules/control_panel/supportTablesWidget.h \
 		../src/modules/control_panel/externalSourceDialog.h \
@@ -527,12 +539,14 @@ DIST          = ../build.sh \
 		../src/core/tableExporter.cpp \
 		../src/core/elevationManager.cpp \
 		../src/core/externalSourceManager.cpp \
+		../src/core/reportviewerdialog.cpp \
 		../src/core/oauth2Google.cpp \
 		../src/ui/changePasswordDialog.cpp \
 		../src/ui/loginDialog.cpp \
 		../src/ui/setupWizard.cpp \
 		../src/ui/elevationDialog.cpp \
 		../src/ui/mainWindow.cpp \
+		../src/modules/clients/clients.cpp \
 		../src/modules/control_panel/control_panel.cpp \
 		../src/modules/control_panel/supportTablesWidget.cpp \
 		../src/modules/control_panel/externalSourceDialog.cpp \
@@ -896,6 +910,7 @@ Makefile: ../qGlobalManager.pro /usr/lib64/qt5/mkspecs/linux-g++/qmake.conf /usr
 		/usr/lib64/qt5/mkspecs/features/exclusive_builds.prf \
 		/usr/lib64/qt5/mkspecs/features/toolchain.prf \
 		/usr/lib64/qt5/mkspecs/features/default_pre.prf \
+		../src/modules/clients/clients.pri \
 		../src/modules/control_panel/control_panel.pri \
 		../src/modules/users/users.pri \
 		/usr/lib64/qt5/mkspecs/features/resolve_config.prf \
@@ -1263,6 +1278,7 @@ Makefile: ../qGlobalManager.pro /usr/lib64/qt5/mkspecs/linux-g++/qmake.conf /usr
 /usr/lib64/qt5/mkspecs/features/exclusive_builds.prf:
 /usr/lib64/qt5/mkspecs/features/toolchain.prf:
 /usr/lib64/qt5/mkspecs/features/default_pre.prf:
+../src/modules/clients/clients.pri:
 ../src/modules/control_panel/control_panel.pri:
 ../src/modules/users/users.pri:
 /usr/lib64/qt5/mkspecs/features/resolve_config.prf:
@@ -1299,8 +1315,8 @@ distdir: FORCE
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents ../resources/resources.qrc $(DISTDIR)/
 	$(COPY_FILE) --parents /usr/lib64/qt5/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../src/core/db.h ../src/core/icons.h ../src/core/licenseToken.h ../src/core/mailer.h ../src/core/moduleBase.h ../src/core/session.h ../src/core/theme.h ../src/core/userCredentials.h ../src/core/bootstrapConfig.h ../src/core/tableExporter.h ../src/core/elevationManager.h ../src/core/externalSourceManager.h ../src/core/oauth2Google.h ../src/ui/changePasswordDialog.h ../src/ui/loginDialog.h ../src/ui/setupWizard.h ../src/ui/elevationDialog.h ../src/ui/mainWindow.h ../src/modules/control_panel/control_panel.h ../src/modules/control_panel/supportTablesWidget.h ../src/modules/control_panel/externalSourceDialog.h ../src/modules/control_panel/dbAdminWidget.h ../src/modules/users/users.h $(DISTDIR)/
-	$(COPY_FILE) --parents ../src/main.cpp ../src/core/db.cpp ../src/core/icons.cpp ../src/core/licenseToken.cpp ../src/core/mailer.cpp ../src/core/moduleBase.cpp ../src/core/session.cpp ../src/core/theme.cpp ../src/core/userCredentials.cpp ../src/core/bootstrapConfig.cpp ../src/core/tableExporter.cpp ../src/core/elevationManager.cpp ../src/core/externalSourceManager.cpp ../src/core/oauth2Google.cpp ../src/ui/changePasswordDialog.cpp ../src/ui/loginDialog.cpp ../src/ui/setupWizard.cpp ../src/ui/elevationDialog.cpp ../src/ui/mainWindow.cpp ../src/modules/control_panel/control_panel.cpp ../src/modules/control_panel/supportTablesWidget.cpp ../src/modules/control_panel/externalSourceDialog.cpp ../src/modules/control_panel/dbAdminWidget.cpp ../src/modules/users/users.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents ../src/core/db.h ../src/core/icons.h ../src/core/licenseToken.h ../src/core/mailer.h ../src/core/moduleBase.h ../src/core/session.h ../src/core/theme.h ../src/core/userCredentials.h ../src/core/bootstrapConfig.h ../src/core/tableExporter.h ../src/core/elevationManager.h ../src/core/externalSourceManager.h ../src/core/reportpayload.h ../src/core/reportviewerdialog.h ../src/core/oauth2Google.h ../src/ui/changePasswordDialog.h ../src/ui/loginDialog.h ../src/ui/setupWizard.h ../src/ui/elevationDialog.h ../src/ui/mainWindow.h ../src/modules/clients/clients.h ../src/modules/control_panel/control_panel.h ../src/modules/control_panel/supportTablesWidget.h ../src/modules/control_panel/externalSourceDialog.h ../src/modules/control_panel/dbAdminWidget.h ../src/modules/users/users.h $(DISTDIR)/
+	$(COPY_FILE) --parents ../src/main.cpp ../src/core/db.cpp ../src/core/icons.cpp ../src/core/licenseToken.cpp ../src/core/mailer.cpp ../src/core/moduleBase.cpp ../src/core/session.cpp ../src/core/theme.cpp ../src/core/userCredentials.cpp ../src/core/bootstrapConfig.cpp ../src/core/tableExporter.cpp ../src/core/elevationManager.cpp ../src/core/externalSourceManager.cpp ../src/core/reportviewerdialog.cpp ../src/core/oauth2Google.cpp ../src/ui/changePasswordDialog.cpp ../src/ui/loginDialog.cpp ../src/ui/setupWizard.cpp ../src/ui/elevationDialog.cpp ../src/ui/mainWindow.cpp ../src/modules/clients/clients.cpp ../src/modules/control_panel/control_panel.cpp ../src/modules/control_panel/supportTablesWidget.cpp ../src/modules/control_panel/externalSourceDialog.cpp ../src/modules/control_panel/dbAdminWidget.cpp ../src/modules/users/users.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -1330,7 +1346,15 @@ compiler_rcc_clean:
 .tmp/rcc/qrc_resources.cpp: ../resources/resources.qrc \
 		/usr/lib64/qt5/bin/rcc \
 		../resources/assets/qGlobalManager.jpeg \
-		../resources/icons/qGlobalManager.svg
+		../resources/icons/qGlobalManager.svg \
+		../resources/logos/indumentaria.svg \
+		../resources/logos/general.svg \
+		../resources/logos/odontologia.svg \
+		../resources/logos/comercio.svg \
+		../resources/logos/salud.svg \
+		../resources/logos/veterinaria.svg \
+		../resources/logos/repuestos.svg \
+		../resources/logos/oftalmologia.svg
 	/usr/lib64/qt5/bin/rcc -name resources ../resources/resources.qrc -o .tmp/rcc/qrc_resources.cpp
 
 compiler_moc_predefs_make_all: .tmp/moc/moc_predefs.h
@@ -1339,9 +1363,9 @@ compiler_moc_predefs_clean:
 .tmp/moc/moc_predefs.h: /usr/lib64/qt5/mkspecs/features/data/dummy.cpp
 	g++ -pipe -Wall -Wextra -Wpedantic -g -std=gnu++1z -Wall -Wextra -dM -E -o .tmp/moc/moc_predefs.h /usr/lib64/qt5/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: .tmp/moc/moc_moduleBase.cpp .tmp/moc/moc_session.cpp .tmp/moc/moc_elevationManager.cpp .tmp/moc/moc_changePasswordDialog.cpp .tmp/moc/moc_loginDialog.cpp .tmp/moc/moc_setupWizard.cpp .tmp/moc/moc_elevationDialog.cpp .tmp/moc/moc_mainWindow.cpp .tmp/moc/moc_control_panel.cpp .tmp/moc/moc_supportTablesWidget.cpp .tmp/moc/moc_externalSourceDialog.cpp .tmp/moc/moc_dbAdminWidget.cpp .tmp/moc/moc_users.cpp
+compiler_moc_header_make_all: .tmp/moc/moc_moduleBase.cpp .tmp/moc/moc_session.cpp .tmp/moc/moc_elevationManager.cpp .tmp/moc/moc_reportviewerdialog.cpp .tmp/moc/moc_changePasswordDialog.cpp .tmp/moc/moc_loginDialog.cpp .tmp/moc/moc_setupWizard.cpp .tmp/moc/moc_elevationDialog.cpp .tmp/moc/moc_mainWindow.cpp .tmp/moc/moc_clients.cpp .tmp/moc/moc_control_panel.cpp .tmp/moc/moc_supportTablesWidget.cpp .tmp/moc/moc_externalSourceDialog.cpp .tmp/moc/moc_dbAdminWidget.cpp .tmp/moc/moc_users.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) .tmp/moc/moc_moduleBase.cpp .tmp/moc/moc_session.cpp .tmp/moc/moc_elevationManager.cpp .tmp/moc/moc_changePasswordDialog.cpp .tmp/moc/moc_loginDialog.cpp .tmp/moc/moc_setupWizard.cpp .tmp/moc/moc_elevationDialog.cpp .tmp/moc/moc_mainWindow.cpp .tmp/moc/moc_control_panel.cpp .tmp/moc/moc_supportTablesWidget.cpp .tmp/moc/moc_externalSourceDialog.cpp .tmp/moc/moc_dbAdminWidget.cpp .tmp/moc/moc_users.cpp
+	-$(DEL_FILE) .tmp/moc/moc_moduleBase.cpp .tmp/moc/moc_session.cpp .tmp/moc/moc_elevationManager.cpp .tmp/moc/moc_reportviewerdialog.cpp .tmp/moc/moc_changePasswordDialog.cpp .tmp/moc/moc_loginDialog.cpp .tmp/moc/moc_setupWizard.cpp .tmp/moc/moc_elevationDialog.cpp .tmp/moc/moc_mainWindow.cpp .tmp/moc/moc_clients.cpp .tmp/moc/moc_control_panel.cpp .tmp/moc/moc_supportTablesWidget.cpp .tmp/moc/moc_externalSourceDialog.cpp .tmp/moc/moc_dbAdminWidget.cpp .tmp/moc/moc_users.cpp
 .tmp/moc/moc_moduleBase.cpp: ../src/core/moduleBase.h \
 		.tmp/moc/moc_predefs.h \
 		/usr/lib64/qt5/bin/moc
@@ -1356,6 +1380,12 @@ compiler_moc_header_clean:
 		.tmp/moc/moc_predefs.h \
 		/usr/lib64/qt5/bin/moc
 	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/core/elevationManager.h -o .tmp/moc/moc_elevationManager.cpp
+
+.tmp/moc/moc_reportviewerdialog.cpp: ../src/core/reportviewerdialog.h \
+		../src/core/reportpayload.h \
+		.tmp/moc/moc_predefs.h \
+		/usr/lib64/qt5/bin/moc
+	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/core/reportviewerdialog.h -o .tmp/moc/moc_reportviewerdialog.cpp
 
 .tmp/moc/moc_changePasswordDialog.cpp: ../src/ui/changePasswordDialog.h \
 		.tmp/moc/moc_predefs.h \
@@ -1382,6 +1412,12 @@ compiler_moc_header_clean:
 		.tmp/moc/moc_predefs.h \
 		/usr/lib64/qt5/bin/moc
 	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/ui/mainWindow.h -o .tmp/moc/moc_mainWindow.cpp
+
+.tmp/moc/moc_clients.cpp: ../src/modules/clients/clients.h \
+		../src/core/moduleBase.h \
+		.tmp/moc/moc_predefs.h \
+		/usr/lib64/qt5/bin/moc
+	/usr/lib64/qt5/bin/moc $(DEFINES) --include /mnt/storage/desarrollo/QT/qGlobalManager/build/.tmp/moc/moc_predefs.h -I/usr/lib64/qt5/mkspecs/linux-g++ -I/mnt/storage/desarrollo/QT/qGlobalManager -I/mnt/storage/desarrollo/QT/qGlobalManager/src -I/mnt/storage/desarrollo/QT/qGlobalManager/src/core -I/mnt/storage/desarrollo/QT/qGlobalManager/src/ui -I/mnt/storage/desarrollo/QT/qGlobalManager/src/modules -I/usr/include/qt5 -I/usr/include/qt5/QtSvg -I/usr/include/qt5/QtPrintSupport -I/usr/include/qt5/QtWidgets -I/usr/include/qt5/QtGui -I/usr/include/qt5/QtSql -I/usr/include/qt5/QtNetwork -I/usr/include/qt5/QtCore -I. -I/usr/include/c++/11.2.0 -I/usr/include/c++/11.2.0/x86_64-slackware-linux -I/usr/include/c++/11.2.0/backward -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include -I/usr/local/include -I/usr/lib64/gcc/x86_64-slackware-linux/11.2.0/include-fixed -I/usr/include ../src/modules/clients/clients.h -o .tmp/moc/moc_clients.cpp
 
 .tmp/moc/moc_control_panel.cpp: ../src/modules/control_panel/control_panel.h \
 		../src/core/moduleBase.h \
@@ -1497,6 +1533,15 @@ compiler_clean: compiler_rcc_clean compiler_moc_predefs_clean compiler_moc_heade
 		../src/core/bootstrapConfig.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/externalSourceManager.o ../src/core/externalSourceManager.cpp
 
+.tmp/obj/reportviewerdialog.o: ../src/core/reportviewerdialog.cpp ../src/core/reportviewerdialog.h \
+		../src/core/reportpayload.h \
+		../src/core/theme.h \
+		../src/core/db.h \
+		../src/core/bootstrapConfig.h \
+		../src/core/mailer.h \
+		../src/core/session.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/reportviewerdialog.o ../src/core/reportviewerdialog.cpp
+
 .tmp/obj/oauth2Google.o: ../src/core/oauth2Google.cpp ../src/core/oauth2Google.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/oauth2Google.o ../src/core/oauth2Google.cpp
 
@@ -1535,10 +1580,22 @@ compiler_clean: compiler_rcc_clean compiler_moc_predefs_clean compiler_moc_heade
 		../src/core/bootstrapConfig.h \
 		../src/modules/control_panel/control_panel.h \
 		../src/modules/users/users.h \
+		../src/modules/clients/clients.h \
 		../src/ui/loginDialog.h \
 		../src/ui/changePasswordDialog.h \
 		../src/core/elevationManager.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/mainWindow.o ../src/ui/mainWindow.cpp
+
+.tmp/obj/clients.o: ../src/modules/clients/clients.cpp ../src/modules/clients/clients.h \
+		../src/core/moduleBase.h \
+		../src/core/db.h \
+		../src/core/bootstrapConfig.h \
+		../src/core/icons.h \
+		../src/core/reportpayload.h \
+		../src/core/reportviewerdialog.h \
+		../src/core/session.h \
+		../src/core/userCredentials.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/clients.o ../src/modules/clients/clients.cpp
 
 .tmp/obj/control_panel.o: ../src/modules/control_panel/control_panel.cpp ../src/modules/control_panel/control_panel.h \
 		../src/core/moduleBase.h \
@@ -1600,6 +1657,9 @@ compiler_clean: compiler_rcc_clean compiler_moc_predefs_clean compiler_moc_heade
 .tmp/obj/moc_elevationManager.o: .tmp/moc/moc_elevationManager.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/moc_elevationManager.o .tmp/moc/moc_elevationManager.cpp
 
+.tmp/obj/moc_reportviewerdialog.o: .tmp/moc/moc_reportviewerdialog.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/moc_reportviewerdialog.o .tmp/moc/moc_reportviewerdialog.cpp
+
 .tmp/obj/moc_changePasswordDialog.o: .tmp/moc/moc_changePasswordDialog.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/moc_changePasswordDialog.o .tmp/moc/moc_changePasswordDialog.cpp
 
@@ -1614,6 +1674,9 @@ compiler_clean: compiler_rcc_clean compiler_moc_predefs_clean compiler_moc_heade
 
 .tmp/obj/moc_mainWindow.o: .tmp/moc/moc_mainWindow.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/moc_mainWindow.o .tmp/moc/moc_mainWindow.cpp
+
+.tmp/obj/moc_clients.o: .tmp/moc/moc_clients.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/moc_clients.o .tmp/moc/moc_clients.cpp
 
 .tmp/obj/moc_control_panel.o: .tmp/moc/moc_control_panel.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .tmp/obj/moc_control_panel.o .tmp/moc/moc_control_panel.cpp

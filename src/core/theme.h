@@ -24,6 +24,16 @@ inline constexpr const char *kSuccessGreen   = "#2E7D32";
 void apply(QApplication &app);
 QString styleSheet();
 
+/**
+ *@brief Resuelve la ruta al logo corporativo o devuelve el isotipo SVG
+ * por defecto embebido en recursos según el rubro o sub-rubro.
+ * @param customLogoPath Ruta en disco del logo provisto por la empresa (opcional).
+ * @param businessType Tipo de negocio general ("Comercio", "Consultorio", etc.).
+ * @param subRubro Actividad o especialidad específica ("Odontología", "Veterinaria", etc.).
+ * @return Ruta válida en disco o recurso Qt (":/logos/...").
+**/
+QString resolveLogoResource(const QString customLogoPath = QString(), const QString businessType = QString(), const QString subRubro = QString());
+
 } // namespace Theme
 
 #endif // CORE_THEME_H

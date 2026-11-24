@@ -1294,7 +1294,38 @@ bool Database::createSchema(QString *errorMessage)
             "  prev_hash %3,"
             "  row_hash %3,"
             "  created_at %5"
+            ");").arg(pk, strS, strD, strL, ts),
+
+
+            // 12. Módulo troncal: Clientes / Pacientes (adaptable Comercio / Consultorio)
+        QStringLiteral(
+            "CREATE TABLE IF NOT EXISTS clients ("
+            "  id %1,"
+            "  full_name %2,"
+            "  trade_name %3,"
+            "  document_type_id INTEGER NULL,"
+            "  document_number %3,"
+            "  iva_condition_id INTEGER NULL,"
+            "  phone %3,"
+            "  email %3,"
+            "  address %3,"
+            "  birth_date %3,"
+            "  health_insurance %3,"
+            "  affiliate_number %3,"
+            "  credit_limit DOUBLE NOT NULL DEFAULT 0,"
+            "  current_balance DOUBLE NOT NULL DEFAULT 0,"
+            "  notes %4,"
+            "  is_active INTEGER NOT NULL DEFAULT 1,"
+            "  is_deprecated INTEGER NOT NULL DEFAULT 0,"
+            "  deprecated_at %3,"
+            "  deprecated_by %3,"
+            "  deprecation_note %3,"
+            "  created_at %5,"
+            "  updated_at %5,"
+            "  FOREIGN KEY(document_type_id) REFERENCES document_types(id),"
+            "  FOREIGN KEY(iva_condition_id) REFERENCES iva_conditions(id)"
             ");").arg(pk, strS, strD, strL, ts)
+
     };
 
     QSqlQuery query(connection());
@@ -1409,7 +1440,12 @@ bool Database::seedInitialData(QString *errorMessage)
         {"usuarios",      "permissions",       "Modificar permisos de usuarios"},
         {"usuarios",      "reset_password",    "Generar y reenviar nuevas contraseñas"},
         {"usuarios",      "block",             "Bloquear o desbloquear usuarios"},
-        {"roles",         "access",            "Administrar roles del sistema"}
+        {"roles",         "access",            "Administrar roles del sistema"},
+        {"clientes",      "access",            "Ver listado de Clientes / Pacientes"},
+        {"clientes",      "create",            "Dar de alta Clientes / Pacientes"},
+        {"clientes",      "edit",              "Editar datos de Clientes / Pacientes"},
+        {"clientes",      "deprecate",         "Deprecar o reactivar Clientes / Pacientes"},
+        {"clientes",      "report",            "Generar y enviar informes de Clientes / Pacientes"},
     };
 
     query.prepare(QStringLiteral(
@@ -1460,6 +1496,39 @@ bool Database::seedInitialData(QString *errorMessage)
         for (const QString &act : operatorPerms) {
             opQ.bindValue(QStringLiteral(":act"), act);
             opQ.exec();
+        }
+    }
+
+    // 2d. Permisos por defecto del módulo Clientes / Pacientes para Supervisor y Operador
+    const QStringList clientAllPerms = {
+        QStringLiteral("access"),
+        QStringLiteral("create"),
+        QStringLiteral("edit"),
+        QStringLiteral("deprecate"),
+        QStringLiteral("report")
+    };
+    const QStringList clientOperatorPerms = {
+        QStringLiteral("access"),
+        QStringLiteral("create"),
+        QStringLiteral("edit"),
+        QStringLiteral("report")
+    };
+    {
+        QSqlQuery cpQ(connection());
+        cpQ.prepare(QStringLiteral(
+            "%1 INTO role_permissions (role_id, permission_id) "
+            "SELECT r.id, p.id FROM roles r, permissions p "
+            "WHERE r.name = :rname AND p.module_id = 'clientes' AND p.action = :act;").arg(insertIgnore));
+
+        for (const QString &act : clientAllPerms) {
+            cpQ.bindValue(QStringLiteral(":rname"), QStringLiteral("Responsable / Supervisor"));
+            cpQ.bindValue(QStringLiteral(":act"), act);
+            cpQ.exec();
+        }
+        for (const QString &act : clientOperatorPerms) {
+            cpQ.bindValue(QStringLiteral(":rname"), QStringLiteral("Operador"));
+            cpQ.bindValue(QStringLiteral(":act"), act);
+            cpQ.exec();
         }
     }
 

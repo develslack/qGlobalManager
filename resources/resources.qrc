@@ -2,5 +2,13 @@
     <qresource prefix="/">
         <file>icons/qGlobalManager.svg</file>
         <file>assets/qGlobalManager.jpeg</file>
+        <file>logos/salud.svg</file>
+        <file>logos/odontologia.svg</file>
+        <file>logos/oftalmologia.svg</file>
+        <file>logos/veterinaria.svg</file>
+        <file>logos/repuestos.svg</file>
+        <file>logos/indumentaria.svg</file>
+        <file>logos/comercio.svg</file>
+        <file>logos/general.svg</file>
     </qresource>
 </RCC>

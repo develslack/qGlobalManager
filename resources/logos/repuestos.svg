@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="24" fill="#1E3A5F"/>
+  <!-- Engranaje corporativo de precisión -->
+  <path d="M58 22 h12 l2 10 a36 36 0 0 1 10 4 l8 -7 l9 9 l-7 8 a36 36 0 0 1 4 10 l10 2 v12 l-10 2 a36 36 0 0 1 -4 10 l7 8 l-9 9 l-8 -7 a36 36 0 0 1 -10 4 l-2 10 h-12 l-2 -10 a36 36 0 0 1 -10 -4 l-8 7 l-9 -9 l7 -8 a36 36 0 0 1 -4 -10 l-10 -2 v-12 l10 -2 a36 36 0 0 1 4 -10 l-7 -8 l9 -9 l8 7 a36 36 0 0 1 10 -4 z"
+        fill="#2B7A78" stroke="#4FD1C5" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Centro hueco -->
+  <circle cx="64" cy="64" r="16" fill="#1E3A5F" stroke="#FFFFFF" stroke-width="4"/>
+</svg>

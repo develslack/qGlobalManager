@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="24" fill="#1E3A5F"/>
+  <!-- Almohadillas superiores -->
+  <ellipse cx="42" cy="46" rx="7" ry="10" transform="rotate(-18 42 46)" fill="#4FD1C5"/>
+  <ellipse cx="58" cy="38" rx="7" ry="11" fill="#4FD1C5"/>
+  <ellipse cx="74" cy="38" rx="7" ry="11" fill="#4FD1C5"/>
+  <ellipse cx="90" cy="46" rx="7" ry="10" transform="rotate(18 90 46)" fill="#4FD1C5"/>
+  <!-- Almohadilla central con cruz médica incrustada -->
+  <path d="M44 68 C44 58 84 58 84 68 C86 86 78 98 64 98 C50 98 42 86 44 68 Z" fill="#2B7A78"/>
+  <path d="M61 72 h6 v-5 h5 v6 h-5 v6 h-6 v-6 h-5 v-6 h5 z" fill="#FFFFFF"/>
+</svg>

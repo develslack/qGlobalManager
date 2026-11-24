@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="24" fill="#1E3A5F"/>
+  <!-- Gancho de la percha -->
+  <path d="M64 44 C64 34 76 34 76 42 C76 48 64 50 64 56" fill="none" stroke="#4FD1C5" stroke-width="4" stroke-linecap="round"/>
+  <!-- Cuerpo triangular de la percha -->
+  <path d="M64 56 L30 84 C28 86 30 90 34 90 H94 C98 90 100 86 98 84 Z"
+        fill="#2B7A78" stroke="#4FD1C5" stroke-width="4" stroke-linejoin="round"/>
+  <!-- Barra inferior / soporte -->
+  <line x1="36" y1="84" x2="92" y2="84" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+</svg>

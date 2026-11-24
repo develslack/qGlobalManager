@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="24" fill="#1E3A5F"/>
+  <!-- Escudo geométrico corporativo -->
+  <path d="M64 26 L96 38 V66 C96 84 82 98 64 104 C46 98 32 84 32 66 V38 Z"
+        fill="#2B7A78" stroke="#4FD1C5" stroke-width="4" stroke-linejoin="round"/>
+  <!-- Gráfica interna / división de cuadrantes -->
+  <path d="M64 36 V94" stroke="#1E3A5F" stroke-width="3"/>
+  <path d="M42 62 H86" stroke="#1E3A5F" stroke-width="3"/>
+  <!-- Centro corporativo -->
+  <circle cx="64" cy="62" r="5" fill="#FFFFFF"/>
+</svg>

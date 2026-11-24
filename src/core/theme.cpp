@@ -2,6 +2,7 @@
 
 #include <QApplication>
 #include <QFont>
+#include <QFile>
 
 
 // ============================================================================================================================================= //
@@ -245,5 +246,41 @@ QString styleSheet()
         }
     )");
 }
+
+QString resolveLogoResource(const QString customLogoPath, const QString businessType, const QString subRubro) {
+    // 1\. Prioridad: logo propio subido por la empresa
+    const QString customPath = customLogoPath.trimmed();
+
+    if (!customPath.isEmpty() && QFile::exists(customPath)) { return customPath; }
+        const QString sub = subRubro.trimmed().toLower();
+        const QString type = businessType.trimmed().toLower();
+
+    // 2\. Coincidencia por sub-rubro o especialidad técnica/médica
+
+    if (sub.contains(QStringLiteral("odont")) || sub.contains(QStringLiteral("dent")))
+        { return QStringLiteral(":/logos/odontologia.svg"); }
+
+        if (sub.contains(QStringLiteral("oftalm")) || sub.contains(QStringLiteral("optic")) || sub.contains(QStringLiteral("ojo")))
+            { return QStringLiteral(":/logos/oftalmologia.svg"); }
+
+                if (sub.contains(QStringLiteral("pet")) || sub.contains(QStringLiteral("vet")) || sub.contains(QStringLiteral("animal")))
+                    { return QStringLiteral(":/logos/veterinaria.svg"); }
+
+                        if (sub.contains(QStringLiteral("repuest")) || sub.contains(QStringLiteral("auto")) || sub.contains(QStringLiteral("taller")) || sub.contains(QStringLiteral("mecanic")))
+                            { return QStringLiteral(":/logos/repuestos.svg"); }
+
+                                if (sub.contains(QStringLiteral("ropa")) || sub.contains(QStringLiteral("indument")) || sub.contains(QStringLiteral("moda")) || sub.contains(QStringLiteral("textil")))
+                                    { return QStringLiteral(":/logos/indumentaria.svg"); }
+
+                                    // 3\. Fallback por rubro general
+
+                                        if (type.contains(QStringLiteral("consultorio")) || sub.contains(QStringLiteral("medic")) || sub.contains(QStringLiteral("salud")))
+                                            { return QStringLiteral(":/logos/salud.svg"); }
+
+                                                if (type.contains(QStringLiteral("comercio")) || sub.contains(QStringLiteral("kiosk")) || sub.contains(QStringLiteral("despens")) || sub.contains(QStringLiteral("almacen")))
+                                                    { return QStringLiteral(":/logos/comercio.svg"); }
+
+                                                    // 4\. Fallback universal corporativo
+                                                    return QStringLiteral(":/logos/general.svg"); }
 
 } // namespace Theme

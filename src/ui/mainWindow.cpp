@@ -5,6 +5,7 @@
 #include "core/db.h"
 #include "modules/control_panel/control_panel.h"
 #include "modules/users/users.h"
+#include "modules/clients/clients.h"
 #include "loginDialog.h"
 #include "changePasswordDialog.h"
 #include "core/elevationManager.h"
@@ -280,6 +281,16 @@ void MainWindow::registerModules()
     QStringLiteral("usuarios"),
     QStringLiteral("Usuarios"),
     [](QWidget *p) { return new UsuariosModule(p); });
+
+    const bool isClinic = Database::instance()
+        .getSetting(QStringLiteral("company.business_type"), QStringLiteral("Comercio"))
+        .contains(QStringLiteral("Consultorio"), Qt::CaseInsensitive);
+
+    registerModule(
+        QStringLiteral("clientes"),
+        isClinic ? QStringLiteral("Pacientes") : QStringLiteral("Clientes"),
+        [](QWidget *p) { return new ClientesModule(p); });
+
 
 }
 
